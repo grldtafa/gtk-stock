@@ -175,10 +175,11 @@ export default function App() {
   useEffect(() => { metaRef.current = {bls, catalogue, stkInLog, fournisseurs}; },
     [bls, catalogue, stkInLog, fournisseurs]);
 
-  const saveMeta = useCallback(async () => {
+  // overrides permet de passer des valeurs fraîches sans attendre metaRef
+  const saveMeta = useCallback(async (overrides = {}) => {
     try {
       const { data: existing } = await supabase.from("app_state").select("data").eq("key","gtk-data").single();
-      const merged = { ...(existing?.data||{}), ...metaRef.current };
+      const merged = { ...(existing?.data||{}), ...metaRef.current, ...overrides };
       await saveAppState("gtk-data", merged, "meta");
     } catch(e) { addToast("Erreur sauvegarde méta","err"); console.error(e); }
   }, [addToast]);

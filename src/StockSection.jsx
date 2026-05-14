@@ -509,15 +509,23 @@ export default function StockSection({
                     {isAdmin&&(
                         <Btn small outline color={RD} onClick={()=>{
                           if(!window.confirm(`Supprimer le bon ${bl.num} ?\nLe stock sera restauré.`)) return;
-                          const ns=[...stk];
-                          (bl.lignes||[]).forEach(l=>{
-                            const idx=ns.findIndex(s=>s.nom===l.nom);
-                            if(idx>=0) ns[idx]={...ns[idx],qty:Math.max(0,(ns[idx].qty||0)-l.qty)};
+                          // Mise à jour stock : retirer les quantités du BR
+                          const ns = stk.map(a => {
+                            const line = (bl.lignes||[]).find(l=>l.nom===a.nom);
+                            if(!line) return a;
+                            return {...a, qty: Math.max(0,(a.qty||0)-line.qty)};
                           });
-                          setStk(ns); onSaveStock(ns);
-                          setBls(p=>p.filter(b=>b.id!==bl.id));
+                          setStk(ns);
+                          onSaveStock(ns);
+                          // Mettre à jour bls et stkInLog SANS ce BR
+                          const newBls     = bls.filter(b=>b.id!==bl.id);
+                          const newStkInLog = stkInLog.filter(e=>e.bl!==bl.num);
+                          setBls(newBls);
+                          setStkInLog(newStkInLog);
                           setBlViewId(null);
-                          setTimeout(()=>onSaveMeta&&onSaveMeta(),300);
+                          // Passer les nouvelles valeurs directement à onSaveMeta
+                          // pour éviter tout problème de timing avec metaRef
+                          onSaveMeta&&onSaveMeta({bls:newBls, stkInLog:newStkInLog});
                           onToast(`Bon ${bl.num} supprimé · stock restauré`);
                         }}>
                           {Ico.trash} Supprimer le bon
