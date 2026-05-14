@@ -506,32 +506,53 @@ export default function StockSection({
           {/* Grille */}
           {catalogue.length===0
             ? <Card style={{textAlign:"center",padding:"32px",color:T4,fontSize:13}}>Ajoutez des articles dans le Catalogue d'abord</Card>
-            : <div style={{display:"grid",gridTemplateColumns:isMob?"1fr 1fr":"repeat(3,1fr)",gap:8}}>
-                {catalogue.filter(c=>!blCatSearch||c.nom.toLowerCase().includes(blCatSearch.toLowerCase())||c.cat?.toLowerCase().includes(blCatSearch.toLowerCase())).map(c=>{
-                  const inCart=blLignes.find(l=>l.nom===c.nom);
-                  const ts=c.type?TYPE_STYLE[c.type]:null;
-                  return (
-                    <button key={c.id} onClick={()=>addToCart(c)} style={{
-                      background:inCart?OL:C1,border:`1.5px solid ${inCart?O:C2}`,borderRadius:10,
-                      padding:"10px 12px",textAlign:"left",cursor:"pointer",fontFamily:FF,
-                      display:"flex",flexDirection:"column",gap:5,position:"relative",
-                      transition:"all .12s",boxShadow:inCart?`0 0 0 1px ${O}30`:SH
-                    }}>
-                      {/* Badge qté panier */}
-                      {inCart&&<span style={{position:"absolute",top:-6,right:-6,background:O,color:"#fff",borderRadius:10,fontSize:10,fontWeight:900,padding:"2px 6px",minWidth:20,textAlign:"center"}}>{inCart.qty}</span>}
-                      <div style={{fontSize:12,fontWeight:700,color:inCart?OD:T1,lineHeight:1.3}}>{c.nom}</div>
-                      <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
-                        {c.cat&&<Badge bg={inCart?O+"20":OL} c={inCart?OD:O}>{c.cat}</Badge>}
-                        {ts&&<Badge bg={ts.bg} c={ts.c}>{c.type}</Badge>}
+            : (()=>{
+                const ORDER=["Fibre D3","Fibre D2","ADSL"];
+                const CAT_COLOR={"Fibre D3":"#0ea5e9","Fibre D2":"#8b5cf6","ADSL":"#16a34a"};
+                const filtered=catalogue.filter(c=>!blCatSearch||c.nom.toLowerCase().includes(blCatSearch.toLowerCase())||c.cat?.toLowerCase().includes(blCatSearch.toLowerCase()));
+                const groups={};
+                filtered.forEach(c=>{const k=c.cat||"Autre";if(!groups[k])groups[k]=[];groups[k].push(c);});
+                Object.keys(groups).forEach(k=>{ groups[k].sort((a,b)=>{const pa=a.prix>0?0:1,pb=b.prix>0?0:1;if(pa!==pb)return pa-pb;return(a.nom||"").localeCompare(b.nom||"","fr");}); });
+                const keys=[...ORDER.filter(k=>groups[k]),...Object.keys(groups).filter(k=>!ORDER.includes(k)&&groups[k])];
+                return (
+                  <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                    {keys.map(cat=>(
+                      <div key={cat}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                          <div style={{width:3,height:14,borderRadius:2,background:CAT_COLOR[cat]||T4,flexShrink:0}}/>
+                          <span style={{fontSize:11,fontWeight:800,color:CAT_COLOR[cat]||T4,textTransform:"uppercase",letterSpacing:1}}>{cat}</span>
+                          <span style={{fontSize:10,color:T5}}>· {groups[cat].length} article{groups[cat].length>1?"s":""}</span>
+                          <div style={{flex:1,height:1,background:CAT_COLOR[cat]||C2,opacity:.2}}/>
+                        </div>
+                        <div style={{display:"grid",gridTemplateColumns:isMob?"1fr 1fr":"repeat(3,1fr)",gap:8}}>
+                          {groups[cat].map(c=>{
+                            const inCart=blLignes.find(l=>l.nom===c.nom);
+                            const ts=c.type?TYPE_STYLE[c.type]:null;
+                            return (
+                              <button key={c.id} onClick={()=>addToCart(c)} style={{
+                                background:inCart?OL:C1,border:`1.5px solid ${inCart?O:C2}`,borderRadius:10,
+                                padding:"10px 12px",textAlign:"left",cursor:"pointer",fontFamily:FF,
+                                display:"flex",flexDirection:"column",gap:5,position:"relative",
+                                transition:"all .12s",boxShadow:inCart?`0 0 0 1px ${O}30`:SH
+                              }}>
+                                {inCart&&<span style={{position:"absolute",top:-6,right:-6,background:O,color:"#fff",borderRadius:10,fontSize:10,fontWeight:900,padding:"2px 6px",minWidth:20,textAlign:"center"}}>{inCart.qty}</span>}
+                                <div style={{fontSize:12,fontWeight:700,color:inCart?OD:T1,lineHeight:1.3}}>{c.nom}</div>
+                                <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
+                                  {ts&&<Badge bg={ts.bg} c={ts.c}>{c.type}</Badge>}
+                                </div>
+                                {c.prix>0&&<div style={{fontSize:11,fontFamily:FM,color:T4,marginTop:1}}>{f(c.prix)}</div>}
+                                <div style={{position:"absolute",bottom:8,right:8,width:22,height:22,borderRadius:6,background:inCart?O:C3,display:"flex",alignItems:"center",justifyContent:"center",color:inCart?"#fff":T4,transition:"all .12s"}}>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                      {c.prix>0&&<div style={{fontSize:11,fontFamily:FM,color:T4,marginTop:1}}>{f(c.prix)}</div>}
-                      <div style={{position:"absolute",bottom:8,right:8,width:22,height:22,borderRadius:6,background:inCart?O:C3,display:"flex",alignItems:"center",justifyContent:"center",color:inCart?"#fff":T4,transition:"all .12s"}}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                    ))}
+                  </div>
+                );
+              })()
           }
         </div>
 
