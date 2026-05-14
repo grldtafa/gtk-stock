@@ -751,10 +751,23 @@ export default function StockSection({
             <label style={{fontSize:11,fontWeight:700,color:T3,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:.8}}>Technicien</label>
             {techs.length===0
               ? <div style={{background:OL,borderRadius:8,padding:"10px 14px",fontSize:12,color:OD,display:"flex",alignItems:"center",gap:7}}><span style={{flexShrink:0}}>{Ico.alert}</span><span>Aucun technicien — ajoutez-en dans l'onglet <b>Équipe</b></span></div>
-              : <select value={sortTech} onChange={e=>setSortTech(e.target.value)} style={{background:C1,border:`1.5px solid ${sortTech?O:C2}`,borderRadius:8,padding:isMob?"14px 12px":"10px 12px",fontSize:isMob?16:13,color:T1,fontFamily:FF,outline:"none",width:"100%",cursor:"pointer"}}>
-                  <option value="">— Choisir un technicien —</option>
-                  {[...techs].sort((a,b)=>techFullName(a).localeCompare(techFullName(b),"fr")).map(t=><option key={t.id} value={t.id}>{techFullName(t)}</option>)}
-                </select>
+              : <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {[...techs].sort((a,b)=>techFullName(a).localeCompare(techFullName(b),"fr")).map(t=>{
+                    const selected=sortTech===t.id;
+                    return (
+                      <button key={t.id} onClick={()=>setSortTech(selected?"":t.id)} style={{
+                        display:"flex",alignItems:"center",gap:10,padding:"9px 12px",
+                        borderRadius:10,border:`1.5px solid ${selected?O:C2}`,
+                        background:selected?OL:C1,cursor:"pointer",fontFamily:FF,textAlign:"left",
+                        transition:"all .12s"
+                      }}>
+                        <TechAvatar t={t} size={34}/>
+                        <span style={{fontSize:13,fontWeight:selected?700:500,color:selected?OD:T1,flex:1}}>{techFullName(t)}</span>
+                        {selected&&<span style={{width:18,height:18,borderRadius:9,background:O,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{Ico.check}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
             }
           </div>
           {/* ── Stock sélectionnable ── */}
