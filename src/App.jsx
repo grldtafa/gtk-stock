@@ -28,7 +28,7 @@ function LoginScreen({ onLogin }) {
   };
 
   const sInp = {
-    width:"100%", padding:"12px 14px", fontSize:14,
+    width:"100%", padding:"12px 14px", fontSize:16,
     border:"1px solid #2a2a2a", borderRadius:8, outline:"none",
     boxSizing:"border-box", fontFamily:FF,
     background:"#111", color:"#fff",
