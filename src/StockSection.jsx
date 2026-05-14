@@ -1129,15 +1129,6 @@ export default function StockSection({
     const nc=catForm?.id?catalogue.map(c=>c.id===catForm.id?{...c,...entry}:c):[...catalogue,{id:Date.now(),...entry}];
     setCatalogue(nc);setTimeout(()=>onSaveMeta&&onSaveMeta(),300);setCatForm(null);onToast("Catalogue mis à jour");
   };
-  const duplicateCat = (c) => {
-    const copy={...c,id:Date.now(),nom:c.nom+" (copie)"};
-    const nc=[...catalogue,copy];
-    setCatalogue(nc);
-    setTimeout(()=>onSaveMeta&&onSaveMeta(),300);
-    openCatForm(copy);
-    onToast("Article dupliqué · modifiez le nom puis sauvegardez");
-  };
-
   const deleteCat = id => {
     if(!window.confirm("Supprimer cet article du catalogue ?")) return;
     const nc=catalogue.filter(c=>c.id!==id);setCatalogue(nc);setTimeout(()=>onSaveMeta&&onSaveMeta(),300);onToast("Article supprimé");
@@ -1243,7 +1234,7 @@ export default function StockSection({
                   </div>
                   {/* Articles */}
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    {groups[cat].map(c=>{
+                    {[...groups[cat]].sort((a,b)=>(a.nom||"").localeCompare(b.nom||"","fr")).map(c=>{
                       const ts=c.type?TYPE_STYLE[c.type]:null;
                       return (
                         <Card key={c.id} style={{padding:"12px 16px",display:"flex",alignItems:"center",gap:12,borderLeft:`3px solid ${CAT_COLOR[cat]||C2}`}}>
@@ -1263,7 +1254,6 @@ export default function StockSection({
                           {c.prix>0&&<div style={{textAlign:"right",flexShrink:0}}><div style={{fontFamily:FM,fontWeight:700,color:T2,fontSize:13}}>{f(c.prix)}</div></div>}
                           {isAdmin&&(
                             <div style={{display:"flex",gap:4,flexShrink:0}}>
-                              <button onClick={()=>duplicateCat(c)} title="Dupliquer" style={{background:C3,border:`1px solid ${C2}`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:T4}}>{Ico.copy}</button>
                               <button onClick={()=>openCatForm(c)} title="Modifier" style={{background:C3,border:`1px solid ${C2}`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:T3}}>{Ico.edit}</button>
                               <button onClick={()=>deleteCat(c.id)} title="Supprimer" style={{background:RDL,border:`1px solid ${RD}30`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:RD}}>{Ico.trash}</button>
                             </div>
