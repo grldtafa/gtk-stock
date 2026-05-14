@@ -1234,7 +1234,11 @@ export default function StockSection({
                   </div>
                   {/* Articles */}
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    {[...groups[cat]].sort((a,b)=>(a.nom||"").localeCompare(b.nom||"","fr")).map(c=>{
+                    {[...groups[cat]].sort((a,b)=>{
+                      const pa=a.prix>0?0:1, pb=b.prix>0?0:1;
+                      if(pa!==pb) return pa-pb;
+                      return (a.nom||"").localeCompare(b.nom||"","fr");
+                    }).map(c=>{
                       const ts=c.type?TYPE_STYLE[c.type]:null;
                       return (
                         <Card key={c.id} style={{padding:"12px 16px",display:"flex",alignItems:"center",gap:12,borderLeft:`3px solid ${CAT_COLOR[cat]||C2}`}}>
