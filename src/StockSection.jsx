@@ -123,7 +123,6 @@ export default function StockSection({
   const [invSearch,  setInvSearch]  = useState("");
   const [typeFilter, setTypeFilter] = useState("Tous");
   const [editQty,    setEditQty]    = useState(null);  // {id, val}
-  const [editSeuil,  setEditSeuil]  = useState(null);  // {id, val}
 
   const alertItems  = stk.filter(a => (a.seuil||0) > 0 && (a.qty||0) <= (a.seuil||0));
   const totalValeur = stk.reduce((s,a)=>s+(a.qty||0)*(a.prix||0),0);
@@ -140,11 +139,6 @@ export default function StockSection({
     const q=parseInt(val); if(isNaN(q)||q<0) return;
     const ns=stk.map(a=>a.id===id?{...a,qty:q}:a);
     setStk(ns); onSaveStock(ns); setEditQty(null); onToast("Quantité mise à jour");
-  };
-  const saveSeuil = (id, val) => {
-    const s=parseInt(val); if(isNaN(s)||s<0) return;
-    const ns=stk.map(a=>a.id===id?{...a,seuil:s}:a);
-    setStk(ns); onSaveStock(ns); setEditSeuil(null); onToast("Seuil d'alerte mis à jour");
   };
 
   const TYPE_TABS = ["Tous", "Consommable", "Outillage"];
@@ -250,23 +244,10 @@ export default function StockSection({
                   </div>
                 </div>
                 {/* Seuil */}
-                {isAdmin&&(
-                  <div style={{flexShrink:0,textAlign:"center"}}>
-                    {editSeuil?.id===a.id ? (
-                      <div style={{display:"flex",alignItems:"center",gap:3}}>
-                        <input type="number" value={editSeuil.val} autoFocus min="0"
-                          onChange={e=>setEditSeuil({...editSeuil,val:e.target.value})}
-                          onKeyDown={e=>{if(e.key==="Enter")saveSeuil(a.id,editSeuil.val);if(e.key==="Escape")setEditSeuil(null);}}
-                          style={{width:50,border:`1.5px solid ${O}`,borderRadius:6,padding:"4px 6px",textAlign:"center",fontFamily:FM,fontSize:12,outline:"none"}}/>
-                        <button onClick={()=>saveSeuil(a.id,editSeuil.val)} style={{background:GR,border:"none",borderRadius:5,color:"#fff",width:24,height:24,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{Ico.check}</button>
-                      </div>
-                    ) : (
-                      <button onClick={()=>setEditSeuil({id:a.id,val:a.seuil||0})}
-                        style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
-                        <span style={{fontSize:9,color:T5,fontWeight:500}}>seuil</span>
-                        <span style={{fontSize:12,fontFamily:FM,fontWeight:700,color:isAlerte?RD:T5,display:"flex",alignItems:"center",gap:2}}>{a.seuil||0}<span style={{opacity:.5,display:"flex"}}>{Ico.pencil}</span></span>
-                      </button>
-                    )}
+                {(a.seuil||0)>0&&(
+                  <div style={{flexShrink:0,textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
+                    <span style={{fontSize:9,color:T5,fontWeight:500}}>seuil</span>
+                    <span style={{fontSize:12,fontFamily:FM,fontWeight:700,color:isAlerte?RD:T5}}>{a.seuil}</span>
                   </div>
                 )}
                 {/* Prix */}
