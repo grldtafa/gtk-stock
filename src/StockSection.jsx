@@ -59,6 +59,9 @@ const Ico = {
   phone:   IcoSvg(<><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.6 3.38 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.64a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></>,13),
   back:    IcoSvg(<><polyline points="15 18 9 12 15 6"/></>,16),
   csv:     IcoSvg(<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,14),
+  print:   IcoSvg(<><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></>,14),
+  copy:    IcoSvg(<><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></>,14),
+  globe:   IcoSvg(<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></>,15),
   box:     IcoSvg(<><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></>,18),
   tool:    IcoSvg(<><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></>,18),
   close:   IcoSvg(<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,14),
@@ -115,7 +118,9 @@ export default function StockSection({
   const [isMob, setIsMob] = useState(typeof window!=="undefined"&&window.innerWidth<768);
   useEffect(()=>{const h=()=>setIsMob(window.innerWidth<768);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
 
-  const goTab = t => { setTab(t); setShowForm(false); setBlMode("liste"); setCatForm(null); setTechForm(null); };
+  const [globalSearch, setGlobalSearch] = useState("");
+
+  const goTab = t => { setTab(t); setShowForm(false); setBlMode("liste"); setCatForm(null); setTechForm(null); setGlobalSearch(""); };
 
   // ════════════════════════════════════════════════════════
   // INVENTAIRE
@@ -368,6 +373,14 @@ export default function StockSection({
     onToast(`${l.nom} retiré · stock restauré`);
   };
 
+  const printBl = (bl) => {
+    const rows=(bl.lignes||[]).map(l=>`<tr><td>${l.nom}</td><td>${l.type||'—'}</td><td style="text-align:center">${l.qty}</td><td style="text-align:right">${l.prix>0?Number(l.prix).toFixed(2).replace('.',',')+' €':'—'}</td><td style="text-align:right">${l.prix>0?((l.qty||0)*(l.prix||0)).toFixed(2).replace('.',',')+' €':'—'}</td></tr>`).join('');
+    const total=(bl.lignes||[]).reduce((s,l)=>s+(l.qty||0)*(l.prix||0),0);
+    const w=window.open('','_blank');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BL ${bl.num}</title><style>body{font-family:-apple-system,sans-serif;padding:40px;color:#0f172a;max-width:820px;margin:0 auto}h1{font-size:22px;font-weight:900;margin:0 0 4px}.sub{color:#64748b;font-size:13px;margin-bottom:28px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#f4f7fa;padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#475569;font-weight:700}td{padding:10px 12px;border-bottom:1px solid #e8edf3;font-size:13px}.tot{margin-top:16px;text-align:right;font-size:15px;font-weight:900;color:#FC7701}.hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}.brand{font-size:20px;font-weight:900;color:#FC7701}@media print{body{padding:20px}}</style></head><body><div class="hd"><div><h1>Bon de réception</h1><div class="sub">${bl.num} · ${bl.dateLabel||fmtDate(bl.date)||'—'}</div></div><div class="brand">GTK STOCK</div></div><table><thead><tr><th>Désignation</th><th>Type</th><th style="text-align:center">Qté</th><th style="text-align:right">Prix unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}</tbody></table>${total>0?`<div class="tot">Total : ${total.toFixed(2).replace('.',',')} €</div>`:''}<script>window.onload=()=>window.print()<\/script></body></html>`);
+    w.document.close();
+  };
+
   const renderEntrees = () => (
     <div>
       {blMode==="liste" ? (<>
@@ -442,8 +455,9 @@ export default function StockSection({
                         );
                       })}
                     </div>
+                    <div style={{marginTop:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <Btn small outline color={T3} onClick={()=>printBl(bl)}>{Ico.print} Imprimer</Btn>
                     {isAdmin&&(
-                      <div style={{marginTop:12,display:"flex",justifyContent:"flex-end"}}>
                         <Btn small outline color={RD} onClick={()=>{
                           if(!window.confirm(`Supprimer le bon ${bl.num} ?\nLe stock sera restauré.`)) return;
                           const ns=[...stk];
@@ -459,8 +473,8 @@ export default function StockSection({
                         }}>
                           {Ico.trash} Supprimer le bon
                         </Btn>
-                      </div>
                     )}
+                    </div>
                   </div>
                 )}
               </Card>
@@ -564,12 +578,13 @@ export default function StockSection({
   // ════════════════════════════════════════════════════════
   // SORTIES
   // ════════════════════════════════════════════════════════
-  const [sortTech,     setSortTech]     = useState("");
-  const [sortCart,     setSortCart]     = useState([]);  // panier sorties
-  const [sortStkSearch,setSortStkSearch]= useState("");  // recherche grille stock
-  const [sortSearch,   setSortSearch]   = useState("");  // recherche historique
-  const [sortHistTech, setSortHistTech] = useState("");
-  const [showForm,     setShowForm]     = useState(false);
+  const [sortTech,      setSortTech]      = useState("");
+  const [sortCart,      setSortCart]      = useState([]);
+  const [sortStkSearch, setSortStkSearch] = useState("");
+  const [sortSearch,    setSortSearch]    = useState("");
+  const [sortHistTech,  setSortHistTech]  = useState("");
+  const [sortHistMonth, setSortHistMonth] = useState("");
+  const [showForm,      setShowForm]      = useState(false);
 
   const addToSortCart = (art) => {
     const inCart = sortCart.find(l=>l.nom===art.nom);
@@ -599,6 +614,17 @@ export default function StockSection({
 
   const doSortie = () => {
     if(!sortTech||sortCart.length===0) return;
+    // ── Vérif stock bas ──
+    const lowItems=sortCart.filter(item=>{
+      const art=stk.find(a=>a.nom===item.nom);
+      if(!art) return false;
+      const newQty=(art.qty||0)-item.qty;
+      return (art.seuil||0)>0 && newQty<=(art.seuil||0);
+    });
+    if(lowItems.length>0){
+      const names=lowItems.map(i=>i.nom).join('\n• ');
+      if(!window.confirm(`⚠️ Alerte stock bas !\nCes articles passeront sous ou au seuil d'alerte :\n• ${names}\n\nContinuer quand même ?`)) return;
+    }
     const tech=techs.find(t=>t.id===sortTech);
     const tn=tech?techFullName(tech):sortTech;
     const date=new Date().toISOString().slice(0,10);
@@ -655,10 +681,13 @@ export default function StockSection({
     onToast(`Sortie supprimée · ${s.qty}× ${s.nom} restauré au stock`);
   };
 
+  const availableMonths=[...new Set(stkOut.map(s=>s.ym||s.date?.slice(0,7)).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+
   const filtOut = stkOut.filter(s=>{
     const matchSearch=!sortSearch||s.nom?.toLowerCase().includes(sortSearch.toLowerCase())||s.techNom?.toLowerCase().includes(sortSearch.toLowerCase());
     const matchTech=!sortHistTech||s.techId===sortHistTech;
-    return matchSearch&&matchTech;
+    const matchMonth=!sortHistMonth||(s.ym||s.date?.slice(0,7))===sortHistMonth;
+    return matchSearch&&matchTech&&matchMonth;
   });
 
   // Grouper par mois
@@ -800,9 +829,16 @@ export default function StockSection({
         </div>
         {techs.length>0&&(
           <select value={sortHistTech} onChange={e=>setSortHistTech(e.target.value)}
-            style={{background:C1,border:`1.5px solid ${sortHistTech?O:C2}`,borderRadius:8,padding:"9px 12px",fontSize:12,color:sortHistTech?T1:T5,fontFamily:FF,outline:"none",cursor:"pointer",minWidth:140}}>
+            style={{background:C1,border:`1.5px solid ${sortHistTech?O:C2}`,borderRadius:8,padding:"9px 12px",fontSize:12,color:sortHistTech?T1:T5,fontFamily:FF,outline:"none",cursor:"pointer",minWidth:130}}>
             <option value="">Tous les techs</option>
             {[...techs].sort((a,b)=>techFullName(a).localeCompare(techFullName(b),"fr")).map(t=><option key={t.id} value={t.id}>{techFullName(t)}</option>)}
+          </select>
+        )}
+        {availableMonths.length>0&&(
+          <select value={sortHistMonth} onChange={e=>setSortHistMonth(e.target.value)}
+            style={{background:C1,border:`1.5px solid ${sortHistMonth?O:C2}`,borderRadius:8,padding:"9px 12px",fontSize:12,color:sortHistMonth?T1:T5,fontFamily:FF,outline:"none",cursor:"pointer",minWidth:120}}>
+            <option value="">Tous les mois</option>
+            {availableMonths.map(ym=><option key={ym} value={ym}>{fmtYM(ym)}</option>)}
           </select>
         )}
       </div>
@@ -1093,6 +1129,15 @@ export default function StockSection({
     const nc=catForm?.id?catalogue.map(c=>c.id===catForm.id?{...c,...entry}:c):[...catalogue,{id:Date.now(),...entry}];
     setCatalogue(nc);setTimeout(()=>onSaveMeta&&onSaveMeta(),300);setCatForm(null);onToast("Catalogue mis à jour");
   };
+  const duplicateCat = (c) => {
+    const copy={...c,id:Date.now(),nom:c.nom+" (copie)"};
+    const nc=[...catalogue,copy];
+    setCatalogue(nc);
+    setTimeout(()=>onSaveMeta&&onSaveMeta(),300);
+    openCatForm(copy);
+    onToast("Article dupliqué · modifiez le nom puis sauvegardez");
+  };
+
   const deleteCat = id => {
     if(!window.confirm("Supprimer cet article du catalogue ?")) return;
     const nc=catalogue.filter(c=>c.id!==id);setCatalogue(nc);setTimeout(()=>onSaveMeta&&onSaveMeta(),300);onToast("Article supprimé");
@@ -1218,8 +1263,9 @@ export default function StockSection({
                           {c.prix>0&&<div style={{textAlign:"right",flexShrink:0}}><div style={{fontFamily:FM,fontWeight:700,color:T2,fontSize:13}}>{f(c.prix)}</div></div>}
                           {isAdmin&&(
                             <div style={{display:"flex",gap:4,flexShrink:0}}>
-                              <button onClick={()=>openCatForm(c)} style={{background:C3,border:`1px solid ${C2}`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:T3}}>{Ico.edit}</button>
-                              <button onClick={()=>deleteCat(c.id)} style={{background:RDL,border:`1px solid ${RD}30`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:RD}}>{Ico.trash}</button>
+                              <button onClick={()=>duplicateCat(c)} title="Dupliquer" style={{background:C3,border:`1px solid ${C2}`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:T4}}>{Ico.copy}</button>
+                              <button onClick={()=>openCatForm(c)} title="Modifier" style={{background:C3,border:`1px solid ${C2}`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:T3}}>{Ico.edit}</button>
+                              <button onClick={()=>deleteCat(c.id)} title="Supprimer" style={{background:RDL,border:`1px solid ${RD}30`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:RD}}>{Ico.trash}</button>
                             </div>
                           )}
                         </Card>
@@ -1343,23 +1389,55 @@ export default function StockSection({
             {isAdmin&&<div style={{marginTop:16}}><Btn onClick={()=>openTechForm()}>{Ico.plus} Ajouter</Btn></div>}
           </Card>
         : <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {[...techs].sort((a,b)=>techFullName(a).localeCompare(techFullName(b),"fr")).map(t=>(
-              <Card key={t.id} style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:14}}>
-                <TechAvatar t={t} size={52}/>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:14,fontWeight:700,color:T1}}>{techFullName(t)}</div>
-                  <div style={{fontSize:11,color:T4,marginTop:2}}>
-                    {stkOut.filter(s=>s.techId===t.id).length} sortie{stkOut.filter(s=>s.techId===t.id).length!==1?"s":""}
+            {[...techs].sort((a,b)=>techFullName(a).localeCompare(techFullName(b),"fr")).map(t=>{
+              const sorties=stkOut.filter(s=>s.techId===t.id);
+              const totalVal=sorties.reduce((s,x)=>s+(x.qty||0)*(x.prix||0),0);
+              const totalQty=sorties.reduce((s,x)=>s+(x.qty||0),0);
+              // Top 3 articles consommés
+              const byArt=sorties.reduce((acc,s)=>{
+                if(!acc[s.nom]) acc[s.nom]={nom:s.nom,qty:0};
+                acc[s.nom].qty+=s.qty||0; return acc;
+              },{});
+              const topArts=Object.values(byArt).sort((a,b)=>b.qty-a.qty).slice(0,3);
+              return (
+              <Card key={t.id} style={{padding:"14px 16px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:14}}>
+                  <TechAvatar t={t} size={52}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:14,fontWeight:700,color:T1}}>{techFullName(t)}</div>
+                    <div style={{display:"flex",gap:10,marginTop:3,flexWrap:"wrap"}}>
+                      <span style={{fontSize:11,color:T4}}>{sorties.length} sortie{sorties.length!==1?"s":""}</span>
+                      {totalQty>0&&<span style={{fontSize:11,color:T4}}>· {totalQty} article{totalQty!==1?"s":""}</span>}
+                      {totalVal>0&&<span style={{fontSize:11,fontWeight:700,color:O}}>· {f(totalVal)}</span>}
+                    </div>
                   </div>
+                  {isAdmin&&(
+                    <div style={{display:"flex",gap:4,flexShrink:0}}>
+                      <button onClick={()=>openTechForm(t)} style={{background:C3,border:`1px solid ${C2}`,borderRadius:6,width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:T3}}>{Ico.edit}</button>
+                      <button onClick={()=>deleteTech(t.id)} style={{background:RDL,border:`1px solid ${RD}30`,borderRadius:6,width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:RD}}>{Ico.trash}</button>
+                    </div>
+                  )}
                 </div>
-                {isAdmin&&(
-                  <div style={{display:"flex",gap:4,flexShrink:0}}>
-                    <button onClick={()=>openTechForm(t)} style={{background:C3,border:`1px solid ${C2}`,borderRadius:6,width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:T3}}>{Ico.edit}</button>
-                    <button onClick={()=>deleteTech(t.id)} style={{background:RDL,border:`1px solid ${RD}30`,borderRadius:6,width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:RD}}>{Ico.trash}</button>
+                {topArts.length>0&&(
+                  <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C2}`,display:"flex",flexDirection:"column",gap:4}}>
+                    <div style={{fontSize:9,fontWeight:700,color:T5,textTransform:"uppercase",letterSpacing:.8,marginBottom:2}}>Articles consommés</div>
+                    {topArts.map(a=>{
+                      const maxQ=topArts[0].qty||1;
+                      return (
+                        <div key={a.nom} style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div style={{fontSize:11,color:T2,fontWeight:500,minWidth:0,flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{a.nom}</div>
+                          <div style={{width:80,height:5,borderRadius:3,background:C3,flexShrink:0}}>
+                            <div style={{height:"100%",borderRadius:3,background:PU,width:`${Math.round((a.qty/maxQ)*100)}%`}}/>
+                          </div>
+                          <div style={{fontSize:11,fontFamily:FM,fontWeight:700,color:PU,flexShrink:0,minWidth:24,textAlign:"right"}}>×{a.qty}</div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </Card>
-            ))}
+              );
+            })}
           </div>
       }
     </div>
@@ -1398,11 +1476,59 @@ export default function StockSection({
       {/* Zone contenu */}
       <div style={{flex:1,display:"flex",flexDirection:"column",background:C3,borderRadius:isMob?0:"0 12px 12px 0",minWidth:0}}>
         {/* Header section */}
-        <div style={{background:C1,padding:"16px 20px",borderBottom:`1px solid ${C2}`,flexShrink:0}}>
-          <div style={{fontSize:17,fontWeight:800,color:T1}}>{LABELS[tab]}</div>
-          <div style={{fontSize:11,color:tab==="inventaire"&&alertItems.length>0?RD:T4,marginTop:1,fontWeight:tab==="inventaire"&&alertItems.length>0?600:400}}>
-            {SUBTITLES[tab]}
+        <div style={{background:C1,padding:"14px 20px",borderBottom:`1px solid ${C2}`,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:globalSearch||4}}>
+            <div>
+              <div style={{fontSize:17,fontWeight:800,color:T1}}>{LABELS[tab]}</div>
+              <div style={{fontSize:11,color:tab==="inventaire"&&alertItems.length>0?RD:T4,marginTop:1,fontWeight:tab==="inventaire"&&alertItems.length>0?600:400}}>{SUBTITLES[tab]}</div>
+            </div>
+            {/* Recherche globale */}
+            <div style={{position:"relative",width:isMob?150:220}}>
+              <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",color:T5,pointerEvents:"none"}}>{Ico.search}</span>
+              <input value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)}
+                placeholder="Recherche globale…"
+                style={{width:"100%",background:C3,border:`1.5px solid ${globalSearch?O:C2}`,borderRadius:8,padding:"8px 10px 8px 32px",fontSize:12,color:T1,fontFamily:FF,outline:"none",boxSizing:"border-box"}}
+                onFocus={e=>e.target.style.borderColor=O} onBlur={e=>e.target.style.borderColor=globalSearch?O:C2}/>
+              {globalSearch&&<button onClick={()=>setGlobalSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:T5,padding:0,display:"flex"}}>{Ico.close}</button>}
+            </div>
           </div>
+          {/* Résultats recherche globale */}
+          {globalSearch.length>=2&&(()=>{
+            const q=globalSearch.toLowerCase();
+            const rStk=stk.filter(a=>a.nom?.toLowerCase().includes(q)||a.cat?.toLowerCase().includes(q)).slice(0,4);
+            const rOut=stkOut.filter(s=>s.nom?.toLowerCase().includes(q)||s.techNom?.toLowerCase().includes(q)).slice(0,4);
+            const rBl=bls.filter(b=>b.num?.toLowerCase().includes(q)||b.lignes?.some(l=>l.nom?.toLowerCase().includes(q))).slice(0,3);
+            const total=rStk.length+rOut.length+rBl.length;
+            if(total===0) return <div style={{padding:"8px 0",fontSize:12,color:T5}}>Aucun résultat pour « {globalSearch} »</div>;
+            return (
+              <div style={{borderTop:`1px solid ${C2}`,paddingTop:10,marginTop:8,display:"flex",flexDirection:"column",gap:4}}>
+                {rStk.length>0&&<div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:2}}>Inventaire</div>}
+                {rStk.map(a=>(
+                  <button key={a.id} onClick={()=>goTab("inventaire")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:7,background:C3,border:"none",cursor:"pointer",fontFamily:FF,textAlign:"left",width:"100%"}}>
+                    <span style={{fontSize:11,fontWeight:600,color:T1,flex:1}}>{a.nom}</span>
+                    <Badge bg={OL} c={O}>{a.cat}</Badge>
+                    <span style={{fontFamily:FM,fontWeight:700,fontSize:11,color:O}}>×{a.qty}</span>
+                  </button>
+                ))}
+                {rOut.length>0&&<div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:2,marginTop:4}}>Sorties</div>}
+                {rOut.map(s=>(
+                  <button key={s.id} onClick={()=>goTab("sorties")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:7,background:C3,border:"none",cursor:"pointer",fontFamily:FF,textAlign:"left",width:"100%"}}>
+                    <span style={{fontSize:11,fontWeight:600,color:T1,flex:1}}>{s.nom}</span>
+                    <span style={{fontSize:11,color:T4}}>{s.techNom}</span>
+                    <span style={{fontFamily:FM,fontWeight:700,fontSize:11,color:RD}}>−{s.qty}</span>
+                  </button>
+                ))}
+                {rBl.length>0&&<div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:2,marginTop:4}}>Bons de réception</div>}
+                {rBl.map(b=>(
+                  <button key={b.id} onClick={()=>goTab("entrees")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:7,background:C3,border:"none",cursor:"pointer",fontFamily:FF,textAlign:"left",width:"100%"}}>
+                    <span style={{fontSize:11,fontWeight:600,color:T1,fontFamily:FM,flex:1}}>{b.num}</span>
+                    <span style={{fontSize:11,color:T4}}>{b.dateLabel||fmtDate(b.date)}</span>
+                    <Badge bg={GRL} c={GR}>{b.lignes?.length||0} art.</Badge>
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Contenu */}
