@@ -194,7 +194,10 @@ export default function App() {
       <div style={{background:"#fff",borderBottom:"1px solid #e4eaf0",padding:"0 24px",height:56,
         display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <img src="/LOGO.png" alt="GTK Réseaux" style={{height:36,width:"auto",objectFit:"contain"}}/>
+          <div style={{width:32,height:32,borderRadius:8,background:O,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </div>
+          <div style={{fontSize:15,fontWeight:800,color:"#0f172a",letterSpacing:-.3}}>GTK STOCK</div>
           {!dataLoaded && (
             <div style={{fontSize:10,color:"#94a3b8",marginLeft:4}}>Chargement…</div>
           )}
@@ -224,6 +227,11 @@ export default function App() {
             isAdmin={true}
           />
         </div>
+      </div>
+
+      {/* Logo coin */}
+      <div style={{position:"fixed",bottom:16,left:16,zIndex:50,opacity:.55,pointerEvents:"none"}}>
+        <img src="/LOGO.png" alt="GTK Réseaux" style={{height:28,width:"auto",objectFit:"contain"}}/>
       </div>
 
       {/* Toasts */}
