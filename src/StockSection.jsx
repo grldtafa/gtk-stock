@@ -375,31 +375,58 @@ export default function StockSection({
   };
 
   // ── Impression bon de sortie ──
-  const printSorties = (sorties) => {
+  // mode : "detail" = une ligne par sortie groupée par date
+  //        "synthese" = articles agrégés (total qty) pour la période
+  const printSorties = (sorties, mode="detail") => {
     if(!sorties?.length) return;
-    // Grouper par technicien
-    const byTech = sorties.reduce((acc,s)=>{
-      const key = s.techId||"__inconnu__";
-      if(!acc[key]) acc[key]={nom:s.techNom||"Inconnu", lines:[]};
-      // Regrouper les lignes identiques (même article)
-      const ex=acc[key].lines.find(l=>l.nom===s.nom);
-      if(ex){ ex.qty+=s.qty; } else { acc[key].lines.push({nom:s.nom,type:s.type||"",qty:s.qty,prix:s.prix||0}); }
-      return acc;
-    },{});
     const now = new Date();
     const dateStr = now.toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"});
-    // Période affichée
-    const mois = [...new Set(sorties.map(s=>s.ym||s.date?.slice(0,7)).filter(Boolean))].sort();
-    const periodeStr = mois.length===1 ? fmtYM(mois[0]) : mois.length>1 ? `${fmtYM(mois[0])} – ${fmtYM(mois[mois.length-1])}` : "";
-    const totalGlobal = sorties.reduce((s,x)=>s+(x.qty||0)*(x.prix||0),0);
-    const sections = Object.values(byTech).map(({nom,lines})=>{
-      const tot = lines.reduce((s,l)=>s+(l.qty||0)*(l.prix||0),0);
-      const rows = lines.map(l=>`<tr><td>${l.nom}</td><td>${l.type||'—'}</td><td style="text-align:center;font-weight:700">${l.qty}</td><td style="text-align:right">${l.prix>0?Number(l.prix).toFixed(2).replace('.',',')+' €':'—'}</td><td style="text-align:right">${l.prix>0?((l.qty)*(l.prix)).toFixed(2).replace('.',',')+' €':'—'}</td></tr>`).join('');
-      const totRow = tot>0?`<tr class="totrow"><td colspan="4" style="text-align:right;font-weight:800">Total ${nom}</td><td style="text-align:right;font-weight:900;color:#FC7701">${tot.toFixed(2).replace('.',',')} €</td></tr>`:'';
-      return `<div class="tech-block"><div class="tech-name">${nom}</div><table><thead><tr><th>Désignation</th><th>Type</th><th style="text-align:center">Qté</th><th style="text-align:right">Prix unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}${totRow}</tbody></table></div>`;
-    }).join('');
+    const mois=[...new Set(sorties.map(s=>s.ym||s.date?.slice(0,7)).filter(Boolean))].sort();
+    const periodeStr=mois.length===1?fmtYM(mois[0]):mois.length>1?`${fmtYM(mois[0])} – ${fmtYM(mois[mois.length-1])}`:"";
+    const totalGlobal=sorties.reduce((s,x)=>s+(x.qty||0)*(x.prix||0),0);
+    const CSS=`body{font-family:-apple-system,sans-serif;padding:40px;color:#0f172a;max-width:880px;margin:0 auto}h1{font-size:22px;font-weight:900;margin:0 0 4px}.sub{color:#64748b;font-size:13px;margin-bottom:28px}.hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid #FC7701}.brand{font-size:20px;font-weight:900;color:#FC7701}.tech-block{margin-bottom:36px}.tech-name{font-size:14px;font-weight:900;color:#1e293b;background:#f4f7fa;border-left:4px solid #FC7701;padding:8px 14px;border-radius:4px;margin-bottom:0}.month-head{font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.8px;padding:10px 0 4px;border-bottom:1px solid #e2e8f0;margin-bottom:0}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#475569;font-weight:700;border-bottom:1px solid #e2e8f0}td{padding:9px 12px;border-bottom:1px solid #f0f4f8;font-size:13px}.totrow td{background:#fffbf5;border-top:2px solid #FC770130}.tot-global{margin-top:24px;text-align:right;font-size:16px;font-weight:900;color:#FC7701;border-top:2px solid #FC7701;padding-top:12px}@media print{body{padding:20px}.tech-block{break-inside:avoid}}`;
+
+    let sections = "";
+    if(mode==="detail") {
+      // Grouper par tech → par date
+      const byTech=sorties.reduce((acc,s)=>{
+        const tk=s.techId||"__inc__";
+        if(!acc[tk]) acc[tk]={nom:s.techNom||"Inconnu",byDate:{}};
+        const dk=s.date||s.ym||"?";
+        if(!acc[tk].byDate[dk]) acc[tk].byDate[dk]=[];
+        acc[tk].byDate[dk].push(s);
+        return acc;
+      },{});
+      sections=Object.values(byTech).map(({nom,byDate})=>{
+        const techTot=Object.values(byDate).flat().reduce((s,l)=>s+(l.qty||0)*(l.prix||0),0);
+        const dateSections=Object.entries(byDate).sort(([a],[b])=>b.localeCompare(a)).map(([dk,lines])=>{
+          const rows=lines.map(l=>`<tr><td>${l.nom}</td><td>${l.type||'—'}</td><td style="text-align:center;font-weight:700">${l.qty}</td><td style="text-align:right">${l.prix>0?Number(l.prix).toFixed(2).replace('.',',')+' €':'—'}</td><td style="text-align:right">${l.prix>0?((l.qty)*(l.prix)).toFixed(2).replace('.',',')+' €':'—'}</td></tr>`).join('');
+          const label=dk.length===10?new Date(dk+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'}):fmtYM(dk);
+          return `<div class="month-head">${label}</div><table><thead><tr><th>Désignation</th><th>Type</th><th style="text-align:center">Qté</th><th style="text-align:right">Prix unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}</tbody></table>`;
+        }).join('');
+        const totRow=techTot>0?`<div style="text-align:right;font-size:13px;font-weight:800;color:#FC7701;padding:8px 12px;border-top:2px solid #FC770130;margin-top:4px">Total ${nom} : ${techTot.toFixed(2).replace('.',',')} €</div>`:'';
+        return `<div class="tech-block"><div class="tech-name">${nom}</div>${dateSections}${totRow}</div>`;
+      }).join('');
+    } else {
+      // Synthèse : grouper par tech → agréger articles (total qty + valeur)
+      const byTech=sorties.reduce((acc,s)=>{
+        const tk=s.techId||"__inc__";
+        if(!acc[tk]) acc[tk]={nom:s.techNom||"Inconnu",lines:[]};
+        const ex=acc[tk].lines.find(l=>l.nom===s.nom);
+        if(ex){ex.qty+=s.qty;}else{acc[tk].lines.push({nom:s.nom,type:s.type||"",qty:s.qty,prix:s.prix||0});}
+        return acc;
+      },{});
+      sections=Object.values(byTech).map(({nom,lines})=>{
+        lines.sort((a,b)=>a.nom.localeCompare(b.nom,"fr"));
+        const tot=lines.reduce((s,l)=>s+(l.qty||0)*(l.prix||0),0);
+        const rows=lines.map(l=>`<tr><td>${l.nom}</td><td>${l.type||'—'}</td><td style="text-align:center;font-weight:700">${l.qty}</td><td style="text-align:right">${l.prix>0?Number(l.prix).toFixed(2).replace('.',',')+' €':'—'}</td><td style="text-align:right">${l.prix>0?((l.qty)*(l.prix)).toFixed(2).replace('.',',')+' €':'—'}</td></tr>`).join('');
+        const totRow=tot>0?`<tr class="totrow"><td colspan="4" style="text-align:right;font-weight:800">Total ${nom}</td><td style="text-align:right;font-weight:900;color:#FC7701">${tot.toFixed(2).replace('.',',')} €</td></tr>`:'';
+        return `<div class="tech-block"><div class="tech-name">${nom}</div><table><thead><tr><th>Désignation</th><th>Type</th><th style="text-align:center">Qté totale</th><th style="text-align:right">Prix unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}${totRow}</tbody></table></div>`;
+      }).join('');
+    }
+    const modeLabel=mode==="detail"?"Détail par sortie":"Synthèse par période";
     const w=window.open('','_blank');
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bon de sortie</title><style>body{font-family:-apple-system,sans-serif;padding:40px;color:#0f172a;max-width:860px;margin:0 auto}h1{font-size:22px;font-weight:900;margin:0 0 4px}.sub{color:#64748b;font-size:13px;margin-bottom:28px}.hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid #FC7701}.brand{font-size:20px;font-weight:900;color:#FC7701}.tech-block{margin-bottom:32px}.tech-name{font-size:14px;font-weight:900;color:#1e293b;background:#f4f7fa;border-left:4px solid #FC7701;padding:8px 14px;border-radius:4px;margin-bottom:0}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#475569;font-weight:700;border-bottom:1px solid #e2e8f0}td{padding:9px 12px;border-bottom:1px solid #f0f4f8;font-size:13px}.totrow td{background:#fffbf5;border-top:2px solid #FC770130}.tot-global{margin-top:24px;text-align:right;font-size:16px;font-weight:900;color:#FC7701;border-top:2px solid #FC7701;padding-top:12px}@media print{body{padding:20px}.tech-block{break-inside:avoid}}</style></head><body><div class="hd"><div><h1>Bon de sortie matériel</h1><div class="sub">${periodeStr?periodeStr+' · ':''}Édité le ${dateStr} · ${sorties.length} sortie${sorties.length!==1?"s":""}</div></div><div class="brand">GTK STOCK</div></div>${sections}${totalGlobal>0?`<div class="tot-global">Total général : ${totalGlobal.toFixed(2).replace('.',',')} €</div>`:''}<script>window.onload=()=>window.print()<\/script></body></html>`);
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bon de sortie</title><style>${CSS}</style></head><body><div class="hd"><div><h1>Bon de sortie matériel</h1><div class="sub">${periodeStr?periodeStr+' · ':''}${modeLabel} · Édité le ${dateStr}</div></div><div class="brand">GTK STOCK</div></div>${sections}${totalGlobal>0?`<div class="tot-global">Total général : ${totalGlobal.toFixed(2).replace('.',',')} €</div>`:''}<script>window.onload=()=>window.print()<\/script></body></html>`);
     w.document.close();
   };
 
@@ -632,6 +659,11 @@ export default function StockSection({
   const [sortHistTech,  setSortHistTech]  = useState("");
   const [sortHistMonth, setSortHistMonth] = useState("");
   const [showForm,      setShowForm]      = useState(false);
+  // Modal impression sorties
+  const [printModal,    setPrintModal]    = useState(false);
+  const [pmTech,        setPmTech]        = useState("");
+  const [pmMonth,       setPmMonth]       = useState("");
+  const [pmMode,        setPmMode]        = useState("detail");
 
   const addToSortCart = (art) => {
     const inCart = sortCart.find(l=>l.nom===art.nom);
@@ -750,8 +782,75 @@ export default function StockSection({
 
   const sBtn={background:C3,border:`1px solid ${C2}`,borderRadius:10,cursor:"pointer",fontFamily:FM,fontWeight:800,fontSize:22,color:T2,width:48,height:48,display:"flex",alignItems:"center",justifyContent:"center"};
 
-  const renderSorties = () => (
+  const renderSorties = () => {
+    // Données disponibles pour le modal d'impression
+    const pmTechs = techs.length>0 ? [...techs].sort((a,b)=>techFullName(a).localeCompare(techFullName(b),"fr")) : [];
+    const pmMonths = [...new Set(stkOut.map(s=>s.ym||s.date?.slice(0,7)).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+    const pmSorties = stkOut.filter(s=>{
+      const mt = !pmTech || s.techId===pmTech;
+      const mm = !pmMonth || (s.ym||s.date?.slice(0,7))===pmMonth;
+      return mt && mm;
+    });
+    return (
     <div>
+      {/* ── Modal impression ── */}
+      {printModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
+          onClick={e=>{if(e.target===e.currentTarget)setPrintModal(false);}}>
+          <div style={{background:C1,borderRadius:16,width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,.4)",overflow:"hidden"}}>
+            {/* Header modal */}
+            <div style={{background:O,padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{color:"#fff",fontWeight:800,fontSize:15,display:"flex",alignItems:"center",gap:8}}>{Ico.print} Impression bon de sortie</div>
+              <button onClick={()=>setPrintModal(false)} style={{background:"none",border:"none",color:"#fff",cursor:"pointer",padding:4,display:"flex"}}>{Ico.close}</button>
+            </div>
+            <div style={{padding:"20px 20px 24px"}}>
+              {/* Sélection technicien */}
+              <div style={{marginBottom:16}}>
+                <label style={{fontSize:11,fontWeight:700,color:T3,textTransform:"uppercase",letterSpacing:.8,display:"block",marginBottom:6}}>Technicien</label>
+                <select value={pmTech} onChange={e=>setPmTech(e.target.value)}
+                  style={{width:"100%",background:BG,border:`1.5px solid ${pmTech?O:C2}`,borderRadius:8,padding:"10px 12px",fontSize:13,color:T1,fontFamily:FF,outline:"none",cursor:"pointer"}}>
+                  <option value="">Tous les techniciens</option>
+                  {pmTechs.map(t=><option key={t.id} value={t.id}>{techFullName(t)}</option>)}
+                </select>
+              </div>
+              {/* Sélection mois */}
+              <div style={{marginBottom:20}}>
+                <label style={{fontSize:11,fontWeight:700,color:T3,textTransform:"uppercase",letterSpacing:.8,display:"block",marginBottom:6}}>Période</label>
+                <select value={pmMonth} onChange={e=>setPmMonth(e.target.value)}
+                  style={{width:"100%",background:BG,border:`1.5px solid ${pmMonth?O:C2}`,borderRadius:8,padding:"10px 12px",fontSize:13,color:T1,fontFamily:FF,outline:"none",cursor:"pointer"}}>
+                  <option value="">Toutes les périodes</option>
+                  {pmMonths.map(ym=><option key={ym} value={ym}>{fmtYM(ym)}</option>)}
+                </select>
+              </div>
+              {/* Mode impression */}
+              <div style={{marginBottom:22}}>
+                <label style={{fontSize:11,fontWeight:700,color:T3,textTransform:"uppercase",letterSpacing:.8,display:"block",marginBottom:8}}>Format</label>
+                <div style={{display:"flex",gap:10}}>
+                  {[{v:"detail",l:"Par commande",d:"Une ligne par sortie, groupé par date"},{v:"synthese",l:"Par mois",d:"Articles agrégés sur la période"}].map(opt=>(
+                    <button key={opt.v} onClick={()=>setPmMode(opt.v)}
+                      style={{flex:1,background:pmMode===opt.v?OL:BG,border:`2px solid ${pmMode===opt.v?O:C2}`,borderRadius:10,padding:"10px 8px",cursor:"pointer",textAlign:"left",transition:"all .12s"}}>
+                      <div style={{fontSize:12,fontWeight:800,color:pmMode===opt.v?OD:T2,marginBottom:3}}>{opt.l}</div>
+                      <div style={{fontSize:10,color:T4,lineHeight:1.3}}>{opt.d}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Résumé + bouton */}
+              <div style={{background:BG,borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:11,color:T3}}>
+                {pmSorties.length===0
+                  ? <span style={{color:RD,fontWeight:600}}>Aucune sortie pour cette sélection</span>
+                  : <span><b style={{color:T1}}>{pmSorties.length}</b> sortie{pmSorties.length!==1?"s":""}{pmTech?` · ${techFullName(pmTechs.find(t=>t.id===pmTech))||""}`:""}{pmMonth?` · ${fmtYM(pmMonth)}`:""}</span>
+                }
+              </div>
+              <button onClick={()=>{ if(!pmSorties.length) return; printSorties(pmSorties,pmMode); setPrintModal(false); }}
+                disabled={pmSorties.length===0}
+                style={{width:"100%",padding:"13px",background:pmSorties.length===0?"#ccc":O,color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:pmSorties.length===0?"not-allowed":"pointer",fontFamily:FF,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                {Ico.print} Imprimer le bon
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {isAdmin&&!showForm&&<Btn full onClick={()=>setShowForm(true)} style={{marginBottom:16,padding:"14px",fontSize:14,borderRadius:10}}>{Ico.out} Nouvelle sortie</Btn>}
       {isAdmin&&showForm&&(
         <div style={{marginBottom:16}}>
@@ -923,9 +1022,9 @@ export default function StockSection({
             {availableMonths.map(ym=><option key={ym} value={ym}>{fmtYM(ym)}</option>)}
           </select>
         )}
-        {filtOut.length>0&&(
-          <button onClick={()=>printSorties(filtOut)}
-            title="Imprimer les sorties affichées"
+        {stkOut.length>0&&(
+          <button onClick={()=>{ setPmTech(sortHistTech); setPmMonth(sortHistMonth); setPmMode("detail"); setPrintModal(true); }}
+            title="Imprimer un bon de sortie"
             style={{background:C1,border:`1.5px solid ${C2}`,borderRadius:8,padding:"9px 13px",fontSize:12,color:T3,fontFamily:FF,cursor:"pointer",display:"flex",alignItems:"center",gap:5,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>
             {Ico.print} Imprimer
           </button>
@@ -1037,7 +1136,8 @@ export default function StockSection({
           </div>
       }
     </div>
-  );
+    );
+  };
 
   // ════════════════════════════════════════════════════════
   // STATS
