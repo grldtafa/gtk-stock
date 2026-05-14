@@ -536,8 +536,10 @@ export default function StockSection({
                                 transition:"all .12s",boxShadow:inCart?`0 0 0 1px ${O}30`:SH
                               }}>
                                 {inCart&&<span style={{position:"absolute",top:-6,right:-6,background:O,color:"#fff",borderRadius:10,fontSize:10,fontWeight:900,padding:"2px 6px",minWidth:20,textAlign:"center"}}>{inCart.qty}</span>}
-                                {c.photo&&<img src={c.photo} alt={c.nom} style={{width:"100%",height:56,objectFit:"cover",borderRadius:6,marginBottom:2}}/>}
-                                <div style={{fontSize:12,fontWeight:700,color:inCart?OD:T1,lineHeight:1.3}}>{c.nom}</div>
+                                <div style={{display:"flex",alignItems:"center",gap:7}}>
+                                  {c.photo&&<img src={c.photo} alt={c.nom} style={{width:32,height:32,objectFit:"cover",borderRadius:6,flexShrink:0,border:`1px solid ${C2}`}}/>}
+                                  <div style={{fontSize:12,fontWeight:700,color:inCart?OD:T1,lineHeight:1.3,flex:1,minWidth:0}}>{c.nom}</div>
+                                </div>
                                 <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
                                   {ts&&<Badge bg={ts.bg} c={ts.c}>{c.type}</Badge>}
                                 </div>
@@ -780,8 +782,10 @@ export default function StockSection({
                           opacity:remaining<=0?0.45:1
                         }}>
                           {inCart&&<span style={{position:"absolute",top:-6,right:-6,background:O,color:"#fff",borderRadius:10,fontSize:10,fontWeight:900,padding:"2px 6px",minWidth:20,textAlign:"center"}}>{inCart.qty}</span>}
-                          {photo&&<img src={photo} alt={a.nom} style={{width:"100%",height:56,objectFit:"cover",borderRadius:6,marginBottom:2}}/>}
-                          <div style={{fontSize:12,fontWeight:700,color:inCart?OD:T1,lineHeight:1.3,paddingRight:12}}>{a.nom}</div>
+                          <div style={{display:"flex",alignItems:"center",gap:7}}>
+                            {photo&&<img src={photo} alt={a.nom} style={{width:32,height:32,objectFit:"cover",borderRadius:6,flexShrink:0,border:`1px solid ${C2}`}}/>}
+                            <div style={{fontSize:12,fontWeight:700,color:inCart?OD:T1,lineHeight:1.3,flex:1,minWidth:0,paddingRight:12}}>{a.nom}</div>
+                          </div>
                           <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
                             {a.cat&&<Badge bg={inCart?O+"20":OL} c={inCart?OD:O}>{a.cat}</Badge>}
                             {ts&&<Badge bg={ts.bg} c={ts.c}>{a.type}</Badge>}
