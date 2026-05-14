@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase.js";
 import { upsertAndClean, saveAppState, fetchAll } from "./db.js";
 import StockSection from "./StockSection.jsx";
@@ -164,13 +164,18 @@ export default function App() {
     } catch(e) { addToast("Erreur sauvegarde équipe","err"); console.error(e); }
   };
 
-  const saveMeta = async () => {
+  // Ref toujours à jour pour éviter les stale closures dans les callbacks
+  const metaRef = useRef({bls, catalogue, stkInLog, fournisseurs});
+  useEffect(() => { metaRef.current = {bls, catalogue, stkInLog, fournisseurs}; },
+    [bls, catalogue, stkInLog, fournisseurs]);
+
+  const saveMeta = useCallback(async () => {
     try {
       const { data: existing } = await supabase.from("app_state").select("data").eq("key","gtk-data").single();
-      const merged = { ...(existing?.data||{}), bls, catalogue, stkInLog, fournisseurs };
+      const merged = { ...(existing?.data||{}), ...metaRef.current };
       await saveAppState("gtk-data", merged, "meta");
     } catch(e) { addToast("Erreur sauvegarde méta","err"); console.error(e); }
-  };
+  }, [addToast]);
 
   if (!loggedIn) return <LoginScreen onLogin={()=>setLoggedIn(true)} />;
 
@@ -229,9 +234,9 @@ export default function App() {
         </div>
       </div>
 
-      {/* Logo coin */}
-      <div style={{position:"fixed",bottom:16,left:16,zIndex:50,opacity:.55,pointerEvents:"none"}}>
-        <img src="/LOGO.png" alt="GTK Réseaux" style={{height:28,width:"auto",objectFit:"contain"}}/>
+      {/* Logo coin haut droit */}
+      <div style={{position:"fixed",top:10,right:120,zIndex:200,pointerEvents:"none"}}>
+        <img src="/LOGO.png" alt="GTK Réseaux" style={{height:36,width:"auto",objectFit:"contain"}}/>
       </div>
 
       {/* Toasts */}
