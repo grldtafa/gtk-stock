@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // ─── Constantes GTK ───
 const O   = "#FC7701";
@@ -117,6 +117,9 @@ export default function StockSection({
   const [tab, setTab] = useState("inventaire");
   const [isMob, setIsMob] = useState(typeof window!=="undefined"&&window.innerWidth<768);
   useEffect(()=>{const h=()=>setIsMob(window.innerWidth<768);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
+
+  const scrollRef = useRef(null);
+  const scrollTop = () => setTimeout(()=>scrollRef.current?.scrollTo({top:0,behavior:"smooth"}),50);
 
   const goTab = t => { setTab(t); setShowForm(false); setBlMode("liste"); setCatForm(null); setTechForm(null); };
 
@@ -1127,6 +1130,7 @@ export default function StockSection({
     setCatForm(item||{}); setCatNom(item?.nom||""); setCatCat(item?.cat||"");
     setCatType(item?.type||""); setCatPrix(item?.prix||""); setCatSeuil(item?.seuil||"");
     setCatPhoto(item?.photo||"");
+    scrollTop();
   };
 
   const handleCatPhotoChange = e => {
@@ -1507,7 +1511,7 @@ export default function StockSection({
         </div>
 
         {/* Contenu */}
-        <div style={{flex:1,overflowY:"auto",padding:"16px",paddingBottom:isMob?80:16}}>
+        <div ref={scrollRef} style={{flex:1,overflowY:"auto",padding:"16px",paddingBottom:isMob?80:16}}>
           {tab==="inventaire"&&renderInventaire()}
           {tab==="entrees"   &&renderEntrees()}
           {tab==="sorties"   &&renderSorties()}
