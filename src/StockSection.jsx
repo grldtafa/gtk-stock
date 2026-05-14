@@ -118,9 +118,7 @@ export default function StockSection({
   const [isMob, setIsMob] = useState(typeof window!=="undefined"&&window.innerWidth<768);
   useEffect(()=>{const h=()=>setIsMob(window.innerWidth<768);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
 
-  const [globalSearch, setGlobalSearch] = useState("");
-
-  const goTab = t => { setTab(t); setShowForm(false); setBlMode("liste"); setCatForm(null); setTechForm(null); setGlobalSearch(""); };
+  const goTab = t => { setTab(t); setShowForm(false); setBlMode("liste"); setCatForm(null); setTechForm(null); };
 
   // ════════════════════════════════════════════════════════
   // INVENTAIRE
@@ -1503,77 +1501,9 @@ export default function StockSection({
       {/* Zone contenu */}
       <div style={{flex:1,display:"flex",flexDirection:"column",background:C3,borderRadius:isMob?0:"0 12px 12px 0",minWidth:0}}>
         {/* Header section */}
-        <div style={{background:C1,padding:"14px 20px",borderBottom:`1px solid ${C2}`,flexShrink:0,position:"relative"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
-            <div>
-              <div style={{fontSize:17,fontWeight:800,color:T1}}>{LABELS[tab]}</div>
-              <div style={{fontSize:11,color:tab==="inventaire"&&alertItems.length>0?RD:T4,marginTop:1,fontWeight:tab==="inventaire"&&alertItems.length>0?600:400}}>{SUBTITLES[tab]}</div>
-            </div>
-            {/* Recherche globale */}
-            <div style={{position:"relative",width:isMob?148:220,flexShrink:0}}>
-              <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",color:T5,pointerEvents:"none"}}>{Ico.search}</span>
-              <input
-                value={globalSearch}
-                onChange={e=>setGlobalSearch(e.target.value)}
-                placeholder="Recherche…"
-                style={{width:"100%",background:C3,border:`1.5px solid ${globalSearch.length>=2?O:C2}`,borderRadius:8,padding:"8px 28px 8px 30px",fontSize:12,color:T1,fontFamily:FF,outline:"none",boxSizing:"border-box"}}
-              />
-              {globalSearch&&<button onClick={()=>setGlobalSearch("")} style={{position:"absolute",right:7,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:T5,padding:2,display:"flex",lineHeight:1}}>{Ico.close}</button>}
-            </div>
-          </div>
-          {/* Dropdown résultats */}
-          {globalSearch.length>=2&&(()=>{
-            const q=globalSearch.toLowerCase();
-            const rStk=stk.filter(a=>a.nom?.toLowerCase().includes(q)||a.cat?.toLowerCase().includes(q)).slice(0,4);
-            const rOut=[...new Map(stkOut.filter(s=>s.nom?.toLowerCase().includes(q)||s.techNom?.toLowerCase().includes(q)).map(s=>[s.nom+s.techId,s])).values()].slice(0,4);
-            const rBl=bls.filter(b=>b.num?.toLowerCase().includes(q)||b.lignes?.some(l=>l.nom?.toLowerCase().includes(q))).slice(0,3);
-            const hasResults=rStk.length+rOut.length+rBl.length>0;
-            return (
-              <div style={{position:"absolute",top:"100%",left:0,right:0,background:C1,borderBottom:`1px solid ${C2}`,borderTop:`1px solid ${C2}`,zIndex:300,padding:"10px 20px 14px",boxShadow:"0 6px 16px rgba(0,0,0,.08)"}}>
-                {!hasResults
-                  ? <div style={{fontSize:12,color:T5,padding:"4px 0"}}>Aucun résultat pour « {globalSearch} »</div>
-                  : <>
-                    {rStk.length>0&&<>
-                      <div style={{fontSize:9,fontWeight:700,color:T5,textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>Inventaire</div>
-                      <div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:8}}>
-                        {rStk.map(a=>(
-                          <button key={a.id} onClick={()=>goTab("inventaire")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:8,background:C3,border:"none",cursor:"pointer",fontFamily:FF,textAlign:"left",width:"100%"}}>
-                            <span style={{fontSize:12,fontWeight:600,color:T1,flex:1}}>{a.nom}</span>
-                            {a.cat&&<Badge bg={OL} c={O}>{a.cat}</Badge>}
-                            <span style={{fontFamily:FM,fontWeight:700,fontSize:12,color:a.qty>0?GR:RD}}>×{a.qty}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </>}
-                    {rOut.length>0&&<>
-                      <div style={{fontSize:9,fontWeight:700,color:T5,textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>Sorties</div>
-                      <div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:8}}>
-                        {rOut.map(s=>(
-                          <button key={s.id} onClick={()=>goTab("sorties")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:8,background:C3,border:"none",cursor:"pointer",fontFamily:FF,textAlign:"left",width:"100%"}}>
-                            <span style={{fontSize:12,fontWeight:600,color:T1,flex:1}}>{s.nom}</span>
-                            <span style={{fontSize:11,color:T4}}>{s.techNom}</span>
-                            <span style={{fontFamily:FM,fontWeight:700,fontSize:11,color:RD}}>−{s.qty}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </>}
-                    {rBl.length>0&&<>
-                      <div style={{fontSize:9,fontWeight:700,color:T5,textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>Bons de réception</div>
-                      <div style={{display:"flex",flexDirection:"column",gap:3}}>
-                        {rBl.map(b=>(
-                          <button key={b.id} onClick={()=>goTab("entrees")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:8,background:C3,border:"none",cursor:"pointer",fontFamily:FF,textAlign:"left",width:"100%"}}>
-                            <span style={{fontSize:12,fontWeight:600,color:T1,fontFamily:FM,flex:1}}>{b.num}</span>
-                            <span style={{fontSize:11,color:T4}}>{b.dateLabel||fmtDate(b.date)}</span>
-                            <Badge bg={GRL} c={GR}>{b.lignes?.length||0} art.</Badge>
-                          </button>
-                        ))}
-                      </div>
-                    </>}
-                  </>
-                }
-              </div>
-            );
-          })()}
+        <div style={{background:C1,padding:"14px 20px",borderBottom:`1px solid ${C2}`,flexShrink:0}}>
+          <div style={{fontSize:17,fontWeight:800,color:T1}}>{LABELS[tab]}</div>
+          <div style={{fontSize:11,color:tab==="inventaire"&&alertItems.length>0?RD:T4,marginTop:1,fontWeight:tab==="inventaire"&&alertItems.length>0?600:400}}>{SUBTITLES[tab]}</div>
         </div>
 
         {/* Contenu */}
