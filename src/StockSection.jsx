@@ -133,6 +133,10 @@ export default function StockSection({
   const totalValeur = stk.reduce((s,a)=>s+(a.qty||0)*(a.prix||0),0);
   const nConso      = stk.filter(a=>a.type==="Consommable").length;
   const nOutillage  = stk.filter(a=>a.type==="Outillage").length;
+  const nRupture    = stk.filter(a=>(a.qty||0)===0).length;
+  const ymNow       = new Date().toISOString().slice(0,7);
+  const sortiesMois = stkOut.filter(s=>(s.ym||s.date?.slice(0,7))===ymNow);
+  const valSortiesMois = sortiesMois.reduce((s,x)=>s+(x.qty||0)*(x.prix||0),0);
 
   const filtStk = stk.filter(a => {
     const matchSearch = !invSearch || a.nom?.toLowerCase().includes(invSearch.toLowerCase()) || a.cat?.toLowerCase().includes(invSearch.toLowerCase());
@@ -180,12 +184,12 @@ export default function StockSection({
       {/* Stats */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}}>
         {[
-          {label:"Valeur",     val:f(totalValeur),      unit:"en stock",  color:O},
-          {label:"Total",      val:String(stk.length), unit:"articles", color:T1},
-          {label:"Consommable",val:String(nConso),      unit:"articles",  color:BL},
-          {label:"Outillage",  val:String(nOutillage),  unit:"articles",  color:PU},
+          {label:"Valeur stock",   val:f(totalValeur),            unit:"en stock",      color:O},
+          {label:"Alertes",        val:String(alertItems.length), unit:"sous seuil",    color:alertItems.length>0?RD:GR,  bg:alertItems.length>0?RDL:GRL},
+          {label:"Sorties ce mois",val:String(sortiesMois.length),unit:valSortiesMois>0?f(valSortiesMois):"sorties",color:PU},
+          {label:"Ruptures",       val:String(nRupture),          unit:"à zéro",        color:nRupture>0?RD:T4, bg:nRupture>0?RDL:undefined},
         ].map((s,i)=>(
-          <Card key={i} style={{padding:"12px 10px",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2}}>
+          <Card key={i} style={{padding:"12px 10px",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,background:s.bg||C1}}>
             <div style={{fontSize:14,fontWeight:900,color:s.color,lineHeight:1.2,wordBreak:"break-all"}}>{s.val}</div>
             <div style={{fontSize:9,color:T5,fontWeight:500}}>{s.unit}</div>
             <div style={{fontSize:9,color:T4,textTransform:"uppercase",letterSpacing:.5,fontWeight:700}}>{s.label}</div>
@@ -1499,56 +1503,74 @@ export default function StockSection({
       {/* Zone contenu */}
       <div style={{flex:1,display:"flex",flexDirection:"column",background:C3,borderRadius:isMob?0:"0 12px 12px 0",minWidth:0}}>
         {/* Header section */}
-        <div style={{background:C1,padding:"14px 20px",borderBottom:`1px solid ${C2}`,flexShrink:0}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:globalSearch||4}}>
+        <div style={{background:C1,padding:"14px 20px",borderBottom:`1px solid ${C2}`,flexShrink:0,position:"relative"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
             <div>
               <div style={{fontSize:17,fontWeight:800,color:T1}}>{LABELS[tab]}</div>
               <div style={{fontSize:11,color:tab==="inventaire"&&alertItems.length>0?RD:T4,marginTop:1,fontWeight:tab==="inventaire"&&alertItems.length>0?600:400}}>{SUBTITLES[tab]}</div>
             </div>
             {/* Recherche globale */}
-            <div style={{position:"relative",width:isMob?150:220}}>
+            <div style={{position:"relative",width:isMob?148:220,flexShrink:0}}>
               <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",color:T5,pointerEvents:"none"}}>{Ico.search}</span>
-              <input value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)}
-                placeholder="Recherche globale…"
-                style={{width:"100%",background:C3,border:`1.5px solid ${globalSearch?O:C2}`,borderRadius:8,padding:"8px 10px 8px 32px",fontSize:12,color:T1,fontFamily:FF,outline:"none",boxSizing:"border-box"}}
-                onFocus={e=>e.target.style.borderColor=O} onBlur={e=>e.target.style.borderColor=globalSearch?O:C2}/>
-              {globalSearch&&<button onClick={()=>setGlobalSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:T5,padding:0,display:"flex"}}>{Ico.close}</button>}
+              <input
+                value={globalSearch}
+                onChange={e=>setGlobalSearch(e.target.value)}
+                placeholder="Recherche…"
+                style={{width:"100%",background:C3,border:`1.5px solid ${globalSearch.length>=2?O:C2}`,borderRadius:8,padding:"8px 28px 8px 30px",fontSize:12,color:T1,fontFamily:FF,outline:"none",boxSizing:"border-box"}}
+              />
+              {globalSearch&&<button onClick={()=>setGlobalSearch("")} style={{position:"absolute",right:7,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:T5,padding:2,display:"flex",lineHeight:1}}>{Ico.close}</button>}
             </div>
           </div>
-          {/* Résultats recherche globale */}
+          {/* Dropdown résultats */}
           {globalSearch.length>=2&&(()=>{
             const q=globalSearch.toLowerCase();
             const rStk=stk.filter(a=>a.nom?.toLowerCase().includes(q)||a.cat?.toLowerCase().includes(q)).slice(0,4);
-            const rOut=stkOut.filter(s=>s.nom?.toLowerCase().includes(q)||s.techNom?.toLowerCase().includes(q)).slice(0,4);
+            const rOut=[...new Map(stkOut.filter(s=>s.nom?.toLowerCase().includes(q)||s.techNom?.toLowerCase().includes(q)).map(s=>[s.nom+s.techId,s])).values()].slice(0,4);
             const rBl=bls.filter(b=>b.num?.toLowerCase().includes(q)||b.lignes?.some(l=>l.nom?.toLowerCase().includes(q))).slice(0,3);
-            const total=rStk.length+rOut.length+rBl.length;
-            if(total===0) return <div style={{padding:"8px 0",fontSize:12,color:T5}}>Aucun résultat pour « {globalSearch} »</div>;
+            const hasResults=rStk.length+rOut.length+rBl.length>0;
             return (
-              <div style={{borderTop:`1px solid ${C2}`,paddingTop:10,marginTop:8,display:"flex",flexDirection:"column",gap:4}}>
-                {rStk.length>0&&<div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:2}}>Inventaire</div>}
-                {rStk.map(a=>(
-                  <button key={a.id} onClick={()=>goTab("inventaire")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:7,background:C3,border:"none",cursor:"pointer",fontFamily:FF,textAlign:"left",width:"100%"}}>
-                    <span style={{fontSize:11,fontWeight:600,color:T1,flex:1}}>{a.nom}</span>
-                    <Badge bg={OL} c={O}>{a.cat}</Badge>
-                    <span style={{fontFamily:FM,fontWeight:700,fontSize:11,color:O}}>×{a.qty}</span>
-                  </button>
-                ))}
-                {rOut.length>0&&<div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:2,marginTop:4}}>Sorties</div>}
-                {rOut.map(s=>(
-                  <button key={s.id} onClick={()=>goTab("sorties")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:7,background:C3,border:"none",cursor:"pointer",fontFamily:FF,textAlign:"left",width:"100%"}}>
-                    <span style={{fontSize:11,fontWeight:600,color:T1,flex:1}}>{s.nom}</span>
-                    <span style={{fontSize:11,color:T4}}>{s.techNom}</span>
-                    <span style={{fontFamily:FM,fontWeight:700,fontSize:11,color:RD}}>−{s.qty}</span>
-                  </button>
-                ))}
-                {rBl.length>0&&<div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:2,marginTop:4}}>Bons de réception</div>}
-                {rBl.map(b=>(
-                  <button key={b.id} onClick={()=>goTab("entrees")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:7,background:C3,border:"none",cursor:"pointer",fontFamily:FF,textAlign:"left",width:"100%"}}>
-                    <span style={{fontSize:11,fontWeight:600,color:T1,fontFamily:FM,flex:1}}>{b.num}</span>
-                    <span style={{fontSize:11,color:T4}}>{b.dateLabel||fmtDate(b.date)}</span>
-                    <Badge bg={GRL} c={GR}>{b.lignes?.length||0} art.</Badge>
-                  </button>
-                ))}
+              <div style={{position:"absolute",top:"100%",left:0,right:0,background:C1,borderBottom:`1px solid ${C2}`,borderTop:`1px solid ${C2}`,zIndex:300,padding:"10px 20px 14px",boxShadow:"0 6px 16px rgba(0,0,0,.08)"}}>
+                {!hasResults
+                  ? <div style={{fontSize:12,color:T5,padding:"4px 0"}}>Aucun résultat pour « {globalSearch} »</div>
+                  : <>
+                    {rStk.length>0&&<>
+                      <div style={{fontSize:9,fontWeight:700,color:T5,textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>Inventaire</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:8}}>
+                        {rStk.map(a=>(
+                          <button key={a.id} onClick={()=>goTab("inventaire")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:8,background:C3,border:"none",cursor:"pointer",fontFamily:FF,textAlign:"left",width:"100%"}}>
+                            <span style={{fontSize:12,fontWeight:600,color:T1,flex:1}}>{a.nom}</span>
+                            {a.cat&&<Badge bg={OL} c={O}>{a.cat}</Badge>}
+                            <span style={{fontFamily:FM,fontWeight:700,fontSize:12,color:a.qty>0?GR:RD}}>×{a.qty}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>}
+                    {rOut.length>0&&<>
+                      <div style={{fontSize:9,fontWeight:700,color:T5,textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>Sorties</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:8}}>
+                        {rOut.map(s=>(
+                          <button key={s.id} onClick={()=>goTab("sorties")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:8,background:C3,border:"none",cursor:"pointer",fontFamily:FF,textAlign:"left",width:"100%"}}>
+                            <span style={{fontSize:12,fontWeight:600,color:T1,flex:1}}>{s.nom}</span>
+                            <span style={{fontSize:11,color:T4}}>{s.techNom}</span>
+                            <span style={{fontFamily:FM,fontWeight:700,fontSize:11,color:RD}}>−{s.qty}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>}
+                    {rBl.length>0&&<>
+                      <div style={{fontSize:9,fontWeight:700,color:T5,textTransform:"uppercase",letterSpacing:1,marginBottom:5}}>Bons de réception</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                        {rBl.map(b=>(
+                          <button key={b.id} onClick={()=>goTab("entrees")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:8,background:C3,border:"none",cursor:"pointer",fontFamily:FF,textAlign:"left",width:"100%"}}>
+                            <span style={{fontSize:12,fontWeight:600,color:T1,fontFamily:FM,flex:1}}>{b.num}</span>
+                            <span style={{fontSize:11,color:T4}}>{b.dateLabel||fmtDate(b.date)}</span>
+                            <Badge bg={GRL} c={GR}>{b.lignes?.length||0} art.</Badge>
+                          </button>
+                        ))}
+                      </div>
+                    </>}
+                  </>
+                }
               </div>
             );
           })()}
