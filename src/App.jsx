@@ -148,10 +148,14 @@ export default function App() {
   // Save functions
   const saveStock = async (data) => {
     if (!data?.length) return;
+    // On sauvegarde d'abord le JSON complet (prioritaire) — indépendant du tableau stock
     try {
-      await upsertAndClean("stock", data.map(s=>({id:s.id,nom:s.nom,cat:s.cat||"",qty:s.qty||0,prix:s.prix||0})), "id", "stock");
       await saveAppState("gtk-stock-full", { stk: data }, "stock-full");
     } catch(e) { addToast("Erreur sauvegarde stock","err"); console.error(e); }
+    // Puis on synchronise la table stock (secondaire, peut échouer sans conséquence)
+    try {
+      await upsertAndClean("stock", data.map(s=>({id:s.id,nom:s.nom,cat:s.cat||"",qty:s.qty||0,prix:s.prix||0})), "id", "stock");
+    } catch(e) { console.error("upsertAndClean stock (non bloquant):", e); }
   };
 
   const saveStockOut = async (data) => {

@@ -267,23 +267,11 @@ export default function StockSection({
                     <div style={{fontSize:12,fontFamily:FM,color:T3}}>{f(a.prix)}</div>
                   </div>
                 )}
-                {/* Quantité */}
+                {/* Quantité — lecture seule (modifiable uniquement via BR/sortie) */}
                 <div style={{flexShrink:0}}>
-                  {isAdmin&&editQty?.id===a.id ? (
-                    <div style={{display:"flex",alignItems:"center",gap:4}}>
-                      <input type="number" value={editQty.val} autoFocus
-                        onChange={e=>setEditQty({...editQty,val:e.target.value})}
-                        onKeyDown={e=>{if(e.key==="Enter")saveQty(a.id,editQty.val);if(e.key==="Escape")setEditQty(null);}}
-                        style={{width:60,border:`1.5px solid ${O}`,borderRadius:6,padding:"5px 6px",textAlign:"center",fontFamily:FM,fontWeight:700,fontSize:14,outline:"none"}}/>
-                      <button onClick={()=>saveQty(a.id,editQty.val)} style={{background:GR,border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{Ico.check}</button>
-                    </div>
-                  ) : (
-                    <button onClick={()=>isAdmin&&setEditQty({id:a.id,val:a.qty||0})}
-                      style={{background:isAlerte?RD+"18":a.qty<=0?RDL:a.qty<=5?OL:GRL,border:"none",borderRadius:8,padding:"6px 12px",cursor:isAdmin?"pointer":"default",fontFamily:FM,fontWeight:900,fontSize:18,color:isAlerte?RD:a.qty<=0?RD:a.qty<=5?OD:GR,display:"flex",alignItems:"center",gap:3}}>
-                      {a.qty||0}
-                      {isAdmin&&<span style={{opacity:.4,display:"flex"}}>{Ico.pencil}</span>}
-                    </button>
-                  )}
+                  <div style={{background:isAlerte?RD+"18":a.qty<=0?RDL:a.qty<=5?OL:GRL,borderRadius:8,padding:"6px 12px",fontFamily:FM,fontWeight:900,fontSize:18,color:isAlerte?RD:a.qty<=0?RD:a.qty<=5?OD:GR,display:"flex",alignItems:"center"}}>
+                    {a.qty||0}
+                  </div>
                 </div>
               </Card>
             );
@@ -383,6 +371,35 @@ export default function StockSection({
     const total=(bl.lignes||[]).reduce((s,l)=>s+(l.qty||0)*(l.prix||0),0);
     const w=window.open('','_blank');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BL ${bl.num}</title><style>body{font-family:-apple-system,sans-serif;padding:40px;color:#0f172a;max-width:820px;margin:0 auto}h1{font-size:22px;font-weight:900;margin:0 0 4px}.sub{color:#64748b;font-size:13px;margin-bottom:28px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#f4f7fa;padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#475569;font-weight:700}td{padding:10px 12px;border-bottom:1px solid #e8edf3;font-size:13px}.tot{margin-top:16px;text-align:right;font-size:15px;font-weight:900;color:#FC7701}.hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}.brand{font-size:20px;font-weight:900;color:#FC7701}@media print{body{padding:20px}}</style></head><body><div class="hd"><div><h1>Bon de réception</h1><div class="sub">${bl.num} · ${bl.dateLabel||fmtDate(bl.date)||'—'}</div></div><div class="brand">GTK STOCK</div></div><table><thead><tr><th>Désignation</th><th>Type</th><th style="text-align:center">Qté</th><th style="text-align:right">Prix unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}</tbody></table>${total>0?`<div class="tot">Total : ${total.toFixed(2).replace('.',',')} €</div>`:''}<script>window.onload=()=>window.print()<\/script></body></html>`);
+    w.document.close();
+  };
+
+  // ── Impression bon de sortie ──
+  const printSorties = (sorties) => {
+    if(!sorties?.length) return;
+    // Grouper par technicien
+    const byTech = sorties.reduce((acc,s)=>{
+      const key = s.techId||"__inconnu__";
+      if(!acc[key]) acc[key]={nom:s.techNom||"Inconnu", lines:[]};
+      // Regrouper les lignes identiques (même article)
+      const ex=acc[key].lines.find(l=>l.nom===s.nom);
+      if(ex){ ex.qty+=s.qty; } else { acc[key].lines.push({nom:s.nom,type:s.type||"",qty:s.qty,prix:s.prix||0}); }
+      return acc;
+    },{});
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"});
+    // Période affichée
+    const mois = [...new Set(sorties.map(s=>s.ym||s.date?.slice(0,7)).filter(Boolean))].sort();
+    const periodeStr = mois.length===1 ? fmtYM(mois[0]) : mois.length>1 ? `${fmtYM(mois[0])} – ${fmtYM(mois[mois.length-1])}` : "";
+    const totalGlobal = sorties.reduce((s,x)=>s+(x.qty||0)*(x.prix||0),0);
+    const sections = Object.values(byTech).map(({nom,lines})=>{
+      const tot = lines.reduce((s,l)=>s+(l.qty||0)*(l.prix||0),0);
+      const rows = lines.map(l=>`<tr><td>${l.nom}</td><td>${l.type||'—'}</td><td style="text-align:center;font-weight:700">${l.qty}</td><td style="text-align:right">${l.prix>0?Number(l.prix).toFixed(2).replace('.',',')+' €':'—'}</td><td style="text-align:right">${l.prix>0?((l.qty)*(l.prix)).toFixed(2).replace('.',',')+' €':'—'}</td></tr>`).join('');
+      const totRow = tot>0?`<tr class="totrow"><td colspan="4" style="text-align:right;font-weight:800">Total ${nom}</td><td style="text-align:right;font-weight:900;color:#FC7701">${tot.toFixed(2).replace('.',',')} €</td></tr>`:'';
+      return `<div class="tech-block"><div class="tech-name">${nom}</div><table><thead><tr><th>Désignation</th><th>Type</th><th style="text-align:center">Qté</th><th style="text-align:right">Prix unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}${totRow}</tbody></table></div>`;
+    }).join('');
+    const w=window.open('','_blank');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bon de sortie</title><style>body{font-family:-apple-system,sans-serif;padding:40px;color:#0f172a;max-width:860px;margin:0 auto}h1{font-size:22px;font-weight:900;margin:0 0 4px}.sub{color:#64748b;font-size:13px;margin-bottom:28px}.hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid #FC7701}.brand{font-size:20px;font-weight:900;color:#FC7701}.tech-block{margin-bottom:32px}.tech-name{font-size:14px;font-weight:900;color:#1e293b;background:#f4f7fa;border-left:4px solid #FC7701;padding:8px 14px;border-radius:4px;margin-bottom:0}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#475569;font-weight:700;border-bottom:1px solid #e2e8f0}td{padding:9px 12px;border-bottom:1px solid #f0f4f8;font-size:13px}.totrow td{background:#fffbf5;border-top:2px solid #FC770130}.tot-global{margin-top:24px;text-align:right;font-size:16px;font-weight:900;color:#FC7701;border-top:2px solid #FC7701;padding-top:12px}@media print{body{padding:20px}.tech-block{break-inside:avoid}}</style></head><body><div class="hd"><div><h1>Bon de sortie matériel</h1><div class="sub">${periodeStr?periodeStr+' · ':''}Édité le ${dateStr} · ${sorties.length} sortie${sorties.length!==1?"s":""}</div></div><div class="brand">GTK STOCK</div></div>${sections}${totalGlobal>0?`<div class="tot-global">Total général : ${totalGlobal.toFixed(2).replace('.',',')} €</div>`:''}<script>window.onload=()=>window.print()<\/script></body></html>`);
     w.document.close();
   };
 
@@ -905,6 +922,13 @@ export default function StockSection({
             <option value="">Tous les mois</option>
             {availableMonths.map(ym=><option key={ym} value={ym}>{fmtYM(ym)}</option>)}
           </select>
+        )}
+        {filtOut.length>0&&(
+          <button onClick={()=>printSorties(filtOut)}
+            title="Imprimer les sorties affichées"
+            style={{background:C1,border:`1.5px solid ${C2}`,borderRadius:8,padding:"9px 13px",fontSize:12,color:T3,fontFamily:FF,cursor:"pointer",display:"flex",alignItems:"center",gap:5,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>
+            {Ico.print} Imprimer
+          </button>
         )}
       </div>
 
