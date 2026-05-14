@@ -512,7 +512,7 @@ export default function StockSection({
                 const filtered=catalogue.filter(c=>!blCatSearch||c.nom.toLowerCase().includes(blCatSearch.toLowerCase())||c.cat?.toLowerCase().includes(blCatSearch.toLowerCase()));
                 const groups={};
                 filtered.forEach(c=>{const k=c.cat||"Autre";if(!groups[k])groups[k]=[];groups[k].push(c);});
-                Object.keys(groups).forEach(k=>{ groups[k].sort((a,b)=>{const pa=a.prix>0?0:1,pb=b.prix>0?0:1;if(pa!==pb)return pa-pb;return(a.nom||"").localeCompare(b.nom||"","fr");}); });
+                Object.keys(groups).forEach(k=>{ groups[k].sort((a,b)=>{const pa=a.prix>0?0:1,pb=b.prix>0?0:1;if(pa!==pb)return pa-pb;if(pa===0)return(b.prix||0)-(a.prix||0);return(a.nom||"").localeCompare(b.nom||"","fr");}); });
                 const keys=[...ORDER.filter(k=>groups[k]),...Object.keys(groups).filter(k=>!ORDER.includes(k)&&groups[k])];
                 return (
                   <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -1258,6 +1258,7 @@ export default function StockSection({
                     {[...groups[cat]].sort((a,b)=>{
                       const pa=a.prix>0?0:1, pb=b.prix>0?0:1;
                       if(pa!==pb) return pa-pb;
+                      if(pa===0) return (b.prix||0)-(a.prix||0);
                       return (a.nom||"").localeCompare(b.nom||"","fr");
                     }).map(c=>{
                       const ts=c.type?TYPE_STYLE[c.type]:null;
