@@ -39,7 +39,7 @@ function LoginScreen({ onLogin }) {
       <div style={{width:380,maxWidth:"90vw"}}>
         {/* Logo */}
         <div style={{textAlign:"center",marginBottom:36}}>
-          <img src="/logo.png" alt="GTK Réseaux" style={{width:140,height:"auto",marginBottom:20}}/>
+          <img src="/LOGO.png" alt="GTK Réseaux" style={{width:140,height:"auto",marginBottom:20}}/>
           <div style={{color:"#fff",fontSize:22,fontWeight:900,letterSpacing:-.5}}>GTK STOCK</div>
           <div style={{color:"#555",fontSize:12,marginTop:4}}>Gestion de dépôt · GTK Réseaux</div>
         </div>
@@ -194,7 +194,7 @@ export default function App() {
       <div style={{background:"#fff",borderBottom:"1px solid #e4eaf0",padding:"0 24px",height:56,
         display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <img src="/logo.png" alt="GTK Réseaux" style={{height:36,width:"auto",objectFit:"contain"}}/>
+          <img src="/LOGO.png" alt="GTK Réseaux" style={{height:36,width:"auto",objectFit:"contain"}}/>
           {!dataLoaded && (
             <div style={{fontSize:10,color:"#94a3b8",marginLeft:4}}>Chargement…</div>
           )}
