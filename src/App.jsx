@@ -7,9 +7,79 @@ import StockSection from "./StockSection.jsx";
 const O  = "#FC7701";
 const FF = "'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
 
+// ─── Identifiants (à modifier ici si besoin) ───
+const APP_USER = "ADMIN";
+const APP_PASS = "Gtkreseaux13.";
+
+// ─── Écran de connexion ───
+function LoginScreen({ onLogin }) {
+  const [user, setUser]     = useState("");
+  const [pass, setPass]     = useState("");
+  const [err,  setErr]      = useState("");
+  const [show, setShow]     = useState(false);
+
+  const handle = () => {
+    if(user.trim() === APP_USER && pass === APP_PASS) {
+      sessionStorage.setItem("gtk-auth","1");
+      onLogin();
+    } else {
+      setErr("Identifiant ou mot de passe incorrect");
+    }
+  };
+
+  const sInp = {
+    width:"100%", padding:"12px 14px", fontSize:14,
+    border:"1px solid #2a2a2a", borderRadius:8, outline:"none",
+    boxSizing:"border-box", fontFamily:FF,
+    background:"#111", color:"#fff",
+  };
+
+  return (
+    <div style={{fontFamily:FF,display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"#0a0a0a"}}>
+      <div style={{width:380,maxWidth:"90vw"}}>
+        {/* Logo */}
+        <div style={{textAlign:"center",marginBottom:36}}>
+          <div style={{width:72,height:72,borderRadius:20,background:O,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",boxShadow:`0 8px 24px ${O}50`}}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </div>
+          <div style={{color:"#fff",fontSize:22,fontWeight:900,letterSpacing:-.5}}>GTK STOCK</div>
+          <div style={{color:"#555",fontSize:12,marginTop:4}}>Gestion de dépôt · GTK Réseaux</div>
+        </div>
+        {/* Formulaire */}
+        <div style={{background:"#161616",borderRadius:16,padding:"36px 32px",border:"1px solid #222"}}>
+          <div style={{marginBottom:16}}>
+            <label style={{fontSize:11,fontWeight:600,color:"#666",display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:.8}}>Identifiant</label>
+            <input value={user} onChange={e=>{setUser(e.target.value);setErr("");}}
+              placeholder="ADMIN" style={sInp} autoComplete="username"
+              onKeyDown={e=>e.key==="Enter"&&handle()}/>
+          </div>
+          <div style={{marginBottom:24}}>
+            <label style={{fontSize:11,fontWeight:600,color:"#666",display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:.8}}>Mot de passe</label>
+            <div style={{position:"relative"}}>
+              <input type={show?"text":"password"} value={pass} onChange={e=>{setPass(e.target.value);setErr("");}}
+                placeholder="••••••••" style={{...sInp,paddingRight:44}} autoComplete="current-password"
+                onKeyDown={e=>e.key==="Enter"&&handle()}/>
+              <button onClick={()=>setShow(s=>!s)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#555",fontSize:12,padding:4}}>
+                {show?"Cacher":"Voir"}
+              </button>
+            </div>
+          </div>
+          {err&&<div style={{background:"#2d1111",border:"1px solid #5c2020",borderRadius:6,padding:"8px 12px",marginBottom:16,fontSize:12,color:"#f87171"}}>{err}</div>}
+          <button onClick={handle} disabled={!user||!pass}
+            style={{width:"100%",padding:"13px",background:(!user||!pass)?"#333":O,color:"#fff",border:"none",
+              borderRadius:8,fontSize:14,fontWeight:700,cursor:(!user||!pass)?"not-allowed":"pointer",fontFamily:FF}}>
+            Se connecter
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main app ───
 export default function App() {
-  const [loading, setLoading] = useState(true);
+  const [loading,    setLoading]    = useState(true);
+  const [loggedIn,   setLoggedIn]   = useState(()=>sessionStorage.getItem("gtk-auth")==="1");
 
   const [stk,         setStk]         = useState([]);
   const [stkOut,      setStkOut]      = useState([]);
@@ -104,6 +174,8 @@ export default function App() {
     } catch(e) { addToast("Erreur sauvegarde méta","err"); console.error(e); }
   };
 
+  if (!loggedIn) return <LoginScreen onLogin={()=>setLoggedIn(true)} />;
+
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"#0a0a0a"}}>
       <div style={{textAlign:"center"}}>
@@ -132,7 +204,10 @@ export default function App() {
             <div style={{fontSize:10,color:"#94a3b8",marginLeft:4}}>Chargement…</div>
           )}
         </div>
-        <div style={{fontSize:11,color:"#94a3b8",fontFamily:FF}}>GTK Réseaux · Gestion de dépôt</div>
+        <button onClick={()=>{sessionStorage.removeItem("gtk-auth");setLoggedIn(false);}}
+          style={{background:"none",border:"1px solid #e4eaf0",borderRadius:6,padding:"5px 12px",fontSize:11,color:"#475569",cursor:"pointer",fontFamily:FF}}>
+          Déconnexion
+        </button>
       </div>
 
       {/* Content */}
