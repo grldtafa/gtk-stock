@@ -39,7 +39,9 @@ function LoginScreen({ onLogin }) {
       <div style={{width:380,maxWidth:"90vw"}}>
         {/* Logo */}
         <div style={{textAlign:"center",marginBottom:36}}>
-          <img src="/LOGO.png" alt="GTK Réseaux" style={{width:140,height:"auto",marginBottom:20}}/>
+          <div style={{width:64,height:64,borderRadius:16,background:O,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px"}}>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </div>
           <div style={{color:"#fff",fontSize:22,fontWeight:900,letterSpacing:-.5}}>GTK STOCK</div>
           <div style={{color:"#555",fontSize:12,marginTop:4}}>Gestion de dépôt · GTK Réseaux</div>
         </div>
