@@ -782,75 +782,8 @@ export default function StockSection({
 
   const sBtn={background:C3,border:`1px solid ${C2}`,borderRadius:10,cursor:"pointer",fontFamily:FM,fontWeight:800,fontSize:22,color:T2,width:48,height:48,display:"flex",alignItems:"center",justifyContent:"center"};
 
-  const renderSorties = () => {
-    // Données disponibles pour le modal d'impression
-    const pmTechs = techs.length>0 ? [...techs].sort((a,b)=>techFullName(a).localeCompare(techFullName(b),"fr")) : [];
-    const pmMonths = [...new Set(stkOut.map(s=>s.ym||s.date?.slice(0,7)).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
-    const pmSorties = stkOut.filter(s=>{
-      const mt = !pmTech || s.techId===pmTech;
-      const mm = !pmMonth || (s.ym||s.date?.slice(0,7))===pmMonth;
-      return mt && mm;
-    });
-    return (
+  const renderSorties = () => (
     <div>
-      {/* ── Modal impression ── */}
-      {printModal&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
-          onClick={e=>{if(e.target===e.currentTarget)setPrintModal(false);}}>
-          <div style={{background:C1,borderRadius:16,width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,.4)",overflow:"hidden"}}>
-            {/* Header modal */}
-            <div style={{background:O,padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div style={{color:"#fff",fontWeight:800,fontSize:15,display:"flex",alignItems:"center",gap:8}}>{Ico.print} Impression bon de sortie</div>
-              <button onClick={()=>setPrintModal(false)} style={{background:"none",border:"none",color:"#fff",cursor:"pointer",padding:4,display:"flex"}}>{Ico.close}</button>
-            </div>
-            <div style={{padding:"20px 20px 24px"}}>
-              {/* Sélection technicien */}
-              <div style={{marginBottom:16}}>
-                <label style={{fontSize:11,fontWeight:700,color:T3,textTransform:"uppercase",letterSpacing:.8,display:"block",marginBottom:6}}>Technicien</label>
-                <select value={pmTech} onChange={e=>setPmTech(e.target.value)}
-                  style={{width:"100%",background:BG,border:`1.5px solid ${pmTech?O:C2}`,borderRadius:8,padding:"10px 12px",fontSize:13,color:T1,fontFamily:FF,outline:"none",cursor:"pointer"}}>
-                  <option value="">Tous les techniciens</option>
-                  {pmTechs.map(t=><option key={t.id} value={t.id}>{techFullName(t)}</option>)}
-                </select>
-              </div>
-              {/* Sélection mois */}
-              <div style={{marginBottom:20}}>
-                <label style={{fontSize:11,fontWeight:700,color:T3,textTransform:"uppercase",letterSpacing:.8,display:"block",marginBottom:6}}>Période</label>
-                <select value={pmMonth} onChange={e=>setPmMonth(e.target.value)}
-                  style={{width:"100%",background:BG,border:`1.5px solid ${pmMonth?O:C2}`,borderRadius:8,padding:"10px 12px",fontSize:13,color:T1,fontFamily:FF,outline:"none",cursor:"pointer"}}>
-                  <option value="">Toutes les périodes</option>
-                  {pmMonths.map(ym=><option key={ym} value={ym}>{fmtYM(ym)}</option>)}
-                </select>
-              </div>
-              {/* Mode impression */}
-              <div style={{marginBottom:22}}>
-                <label style={{fontSize:11,fontWeight:700,color:T3,textTransform:"uppercase",letterSpacing:.8,display:"block",marginBottom:8}}>Format</label>
-                <div style={{display:"flex",gap:10}}>
-                  {[{v:"detail",l:"Par commande",d:"Une ligne par sortie, groupé par date"},{v:"synthese",l:"Par mois",d:"Articles agrégés sur la période"}].map(opt=>(
-                    <button key={opt.v} onClick={()=>setPmMode(opt.v)}
-                      style={{flex:1,background:pmMode===opt.v?OL:BG,border:`2px solid ${pmMode===opt.v?O:C2}`,borderRadius:10,padding:"10px 8px",cursor:"pointer",textAlign:"left",transition:"all .12s"}}>
-                      <div style={{fontSize:12,fontWeight:800,color:pmMode===opt.v?OD:T2,marginBottom:3}}>{opt.l}</div>
-                      <div style={{fontSize:10,color:T4,lineHeight:1.3}}>{opt.d}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {/* Résumé + bouton */}
-              <div style={{background:BG,borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:11,color:T3}}>
-                {pmSorties.length===0
-                  ? <span style={{color:RD,fontWeight:600}}>Aucune sortie pour cette sélection</span>
-                  : <span><b style={{color:T1}}>{pmSorties.length}</b> sortie{pmSorties.length!==1?"s":""}{pmTech?` · ${techFullName(pmTechs.find(t=>t.id===pmTech))||""}`:""}{pmMonth?` · ${fmtYM(pmMonth)}`:""}</span>
-                }
-              </div>
-              <button onClick={()=>{ if(!pmSorties.length) return; printSorties(pmSorties,pmMode); setPrintModal(false); }}
-                disabled={pmSorties.length===0}
-                style={{width:"100%",padding:"13px",background:pmSorties.length===0?"#ccc":O,color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:pmSorties.length===0?"not-allowed":"pointer",fontFamily:FF,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                {Ico.print} Imprimer le bon
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {isAdmin&&!showForm&&<Btn full onClick={()=>setShowForm(true)} style={{marginBottom:16,padding:"14px",fontSize:14,borderRadius:10}}>{Ico.out} Nouvelle sortie</Btn>}
       {isAdmin&&showForm&&(
         <div style={{marginBottom:16}}>
@@ -1136,8 +1069,7 @@ export default function StockSection({
           </div>
       }
     </div>
-    );
-  };
+  );
 
   // ════════════════════════════════════════════════════════
   // STATS
@@ -1641,8 +1573,76 @@ export default function StockSection({
     techs:      `${techs.length} technicien${techs.length!==1?"s":""}`,
   };
 
+  // ── Données pour le modal impression sorties ──
+  const pmTechs   = [...techs].sort((a,b)=>techFullName(a).localeCompare(techFullName(b),"fr"));
+  const pmMonths  = [...new Set(stkOut.map(s=>s.ym||s.date?.slice(0,7)).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+  const pmSorties = stkOut.filter(s=>{
+    const mt = !pmTech  || s.techId===pmTech;
+    const mm = !pmMonth || (s.ym||s.date?.slice(0,7))===pmMonth;
+    return mt && mm;
+  });
+
   return (
     <div style={{display:"flex",fontFamily:FF,height:"100%"}}>
+
+      {/* ══ Modal impression bons de sortie (hors conteneur scroll) ══ */}
+      {printModal&&(
+        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,.55)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
+          onClick={e=>{if(e.target===e.currentTarget)setPrintModal(false);}}>
+          <div style={{background:C1,borderRadius:16,width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,.4)",overflow:"hidden"}}>
+            <div style={{background:O,padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{color:"#fff",fontWeight:800,fontSize:15,display:"flex",alignItems:"center",gap:8}}>{Ico.print} Impression bon de sortie</div>
+              <button onClick={()=>setPrintModal(false)} style={{background:"none",border:"none",color:"#fff",cursor:"pointer",padding:4,display:"flex"}}>{Ico.close}</button>
+            </div>
+            <div style={{padding:"20px 20px 24px"}}>
+              {/* Technicien */}
+              <div style={{marginBottom:16}}>
+                <label style={{fontSize:11,fontWeight:700,color:T3,textTransform:"uppercase",letterSpacing:.8,display:"block",marginBottom:6}}>Technicien</label>
+                <select value={pmTech} onChange={e=>setPmTech(e.target.value)}
+                  style={{width:"100%",background:C3,border:`1.5px solid ${pmTech?O:C2}`,borderRadius:8,padding:"10px 12px",fontSize:13,color:T1,fontFamily:FF,outline:"none",cursor:"pointer"}}>
+                  <option value="">Tous les techniciens</option>
+                  {pmTechs.map(t=><option key={t.id} value={t.id}>{techFullName(t)}</option>)}
+                </select>
+              </div>
+              {/* Mois */}
+              <div style={{marginBottom:20}}>
+                <label style={{fontSize:11,fontWeight:700,color:T3,textTransform:"uppercase",letterSpacing:.8,display:"block",marginBottom:6}}>Période</label>
+                <select value={pmMonth} onChange={e=>setPmMonth(e.target.value)}
+                  style={{width:"100%",background:C3,border:`1.5px solid ${pmMonth?O:C2}`,borderRadius:8,padding:"10px 12px",fontSize:13,color:T1,fontFamily:FF,outline:"none",cursor:"pointer"}}>
+                  <option value="">Toutes les périodes</option>
+                  {pmMonths.map(ym=><option key={ym} value={ym}>{fmtYM(ym)}</option>)}
+                </select>
+              </div>
+              {/* Format */}
+              <div style={{marginBottom:22}}>
+                <label style={{fontSize:11,fontWeight:700,color:T3,textTransform:"uppercase",letterSpacing:.8,display:"block",marginBottom:8}}>Format d'impression</label>
+                <div style={{display:"flex",gap:10}}>
+                  {[{v:"detail",l:"Par commande",d:"Une ligne par sortie, groupées par date"},{v:"synthese",l:"Par mois",d:"Articles agrégés sur la période"}].map(opt=>(
+                    <button key={opt.v} onClick={()=>setPmMode(opt.v)}
+                      style={{flex:1,background:pmMode===opt.v?OL:C3,border:`2px solid ${pmMode===opt.v?O:C2}`,borderRadius:10,padding:"10px 8px",cursor:"pointer",textAlign:"left",transition:"all .12s"}}>
+                      <div style={{fontSize:12,fontWeight:800,color:pmMode===opt.v?OD:T2,marginBottom:3}}>{opt.l}</div>
+                      <div style={{fontSize:10,color:T4,lineHeight:1.3}}>{opt.d}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Résumé */}
+              <div style={{background:C3,borderRadius:8,padding:"10px 12px",marginBottom:16,fontSize:11,color:T3}}>
+                {pmSorties.length===0
+                  ? <span style={{color:RD,fontWeight:600}}>Aucune sortie pour cette sélection</span>
+                  : <span><b style={{color:T1}}>{pmSorties.length}</b> sortie{pmSorties.length!==1?"s":""}{pmTech?` · ${techFullName(pmTechs.find(t=>t.id===pmTech)||{}) }`:""}{pmMonth?` · ${fmtYM(pmMonth)}`:""}</span>
+                }
+              </div>
+              <button onClick={()=>{ if(!pmSorties.length) return; printSorties(pmSorties,pmMode); setPrintModal(false); }}
+                disabled={pmSorties.length===0}
+                style={{width:"100%",padding:"13px",background:pmSorties.length===0?"#ccc":O,color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:pmSorties.length===0?"not-allowed":"pointer",fontFamily:FF,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                {Ico.print} Imprimer le bon
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar desktop */}
       {!isMob&&(
         <div style={{width:200,flexShrink:0,background:C1,borderRight:`1px solid ${C2}`,paddingTop:8,borderRadius:"12px 0 0 12px"}}>
