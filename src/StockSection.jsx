@@ -175,13 +175,13 @@ export default function StockSection({
       {/* Stats */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}}>
         {[
-          {label:"Total",      val:String(stk.length), unit:"articles", color:T1},
           {label:"Valeur",     val:f(totalValeur),      unit:"en stock",  color:O},
+          {label:"Total",      val:String(stk.length), unit:"articles", color:T1},
           {label:"Consommable",val:String(nConso),      unit:"articles",  color:BL},
           {label:"Outillage",  val:String(nOutillage),  unit:"articles",  color:PU},
         ].map((s,i)=>(
           <Card key={i} style={{padding:"12px 10px",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2}}>
-            <div style={{fontSize:i===1?11:20,fontWeight:900,color:s.color,lineHeight:1.2,wordBreak:"break-all"}}>{s.val}</div>
+            <div style={{fontSize:14,fontWeight:900,color:s.color,lineHeight:1.2,wordBreak:"break-all"}}>{s.val}</div>
             <div style={{fontSize:9,color:T5,fontWeight:500}}>{s.unit}</div>
             <div style={{fontSize:9,color:T4,textTransform:"uppercase",letterSpacing:.5,fontWeight:700}}>{s.label}</div>
           </Card>
