@@ -1176,35 +1176,59 @@ export default function StockSection({
             <div style={{color:T1,fontSize:14,fontWeight:700,marginBottom:4}}>{catSearch?"Aucun résultat":"Catalogue vide"}</div>
             <div style={{color:T5,fontSize:12}}>Ajoutez vos premières références</div>
           </Card>
-        : <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {filtCat.map(c=>{
-              const ts=c.type?TYPE_STYLE[c.type]:null;
-              return (
-                <Card key={c.id} style={{padding:"12px 16px",display:"flex",alignItems:"center",gap:12}}>
-                  {c.photo
-                    ? <img src={c.photo} alt={c.nom} style={{width:44,height:44,borderRadius:8,objectFit:"cover",flexShrink:0,border:`1.5px solid ${C2}`}}/>
-                    : c.type
-                      ? <div style={{width:4,height:40,borderRadius:2,flexShrink:0,background:ts?.c||C2}}/>
-                      : null
-                  }
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:700,color:T1}}>{c.nom}</div>
-                    <div style={{display:"flex",gap:4,marginTop:4,flexWrap:"wrap"}}>
-                      {c.cat&&<Badge bg={OL} c={O}>{c.cat}</Badge>}
-                      {ts&&<Badge bg={ts.bg} c={ts.c}>{c.type}</Badge>}
-                      {c.seuil>0&&<Badge bg={RDL} c={RD} style={{display:"inline-flex",alignItems:"center",gap:4}}><span style={{display:"flex"}}>{Ico.alert}</span>seuil {c.seuil}</Badge>}
-                    </div>
+        : <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            {(()=>{
+              const ORDER=["Fibre D3","Fibre D2","ADSL"];
+              const CAT_COLOR={"Fibre D3":"#0ea5e9","Fibre D2":"#8b5cf6","ADSL":"#16a34a"};
+              const groups={};
+              filtCat.forEach(c=>{
+                const k=c.cat||"Autre";
+                if(!groups[k]) groups[k]=[];
+                groups[k].push(c);
+              });
+              const keys=[...ORDER.filter(k=>groups[k]),...Object.keys(groups).filter(k=>!ORDER.includes(k)&&groups[k])];
+              return keys.map(cat=>(
+                <div key={cat}>
+                  {/* Header catégorie */}
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                    <div style={{width:3,height:16,borderRadius:2,background:CAT_COLOR[cat]||T4,flexShrink:0}}/>
+                    <span style={{fontSize:11,fontWeight:800,color:CAT_COLOR[cat]||T4,textTransform:"uppercase",letterSpacing:1}}>{cat}</span>
+                    <span style={{fontSize:10,color:T5,fontWeight:500}}>· {groups[cat].length} article{groups[cat].length>1?"s":""}</span>
+                    <div style={{flex:1,height:1,background:CAT_COLOR[cat]||C2,opacity:.2}}/>
                   </div>
-                  {c.prix>0&&<div style={{textAlign:"right",flexShrink:0}}><div style={{fontFamily:FM,fontWeight:700,color:T2,fontSize:13}}>{f(c.prix)}</div></div>}
-                  {isAdmin&&(
-                    <div style={{display:"flex",gap:4,flexShrink:0}}>
-                      <button onClick={()=>openCatForm(c)} style={{background:C3,border:`1px solid ${C2}`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:T3}}>{Ico.edit}</button>
-                      <button onClick={()=>deleteCat(c.id)} style={{background:RDL,border:`1px solid ${RD}30`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:RD}}>{Ico.trash}</button>
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
+                  {/* Articles */}
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    {groups[cat].map(c=>{
+                      const ts=c.type?TYPE_STYLE[c.type]:null;
+                      return (
+                        <Card key={c.id} style={{padding:"12px 16px",display:"flex",alignItems:"center",gap:12,borderLeft:`3px solid ${CAT_COLOR[cat]||C2}`}}>
+                          {c.photo
+                            ? <img src={c.photo} alt={c.nom} style={{width:44,height:44,borderRadius:8,objectFit:"cover",flexShrink:0,border:`1.5px solid ${C2}`}}/>
+                            : c.type
+                              ? <div style={{width:4,height:40,borderRadius:2,flexShrink:0,background:ts?.c||C2}}/>
+                              : null
+                          }
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:13,fontWeight:700,color:T1}}>{c.nom}</div>
+                            <div style={{display:"flex",gap:4,marginTop:4,flexWrap:"wrap"}}>
+                              {ts&&<Badge bg={ts.bg} c={ts.c}>{c.type}</Badge>}
+                              {c.seuil>0&&<Badge bg={RDL} c={RD} style={{display:"inline-flex",alignItems:"center",gap:4}}><span style={{display:"flex"}}>{Ico.alert}</span>seuil {c.seuil}</Badge>}
+                            </div>
+                          </div>
+                          {c.prix>0&&<div style={{textAlign:"right",flexShrink:0}}><div style={{fontFamily:FM,fontWeight:700,color:T2,fontSize:13}}>{f(c.prix)}</div></div>}
+                          {isAdmin&&(
+                            <div style={{display:"flex",gap:4,flexShrink:0}}>
+                              <button onClick={()=>openCatForm(c)} style={{background:C3,border:`1px solid ${C2}`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:T3}}>{Ico.edit}</button>
+                              <button onClick={()=>deleteCat(c.id)} style={{background:RDL,border:`1px solid ${RD}30`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:RD}}>{Ico.trash}</button>
+                            </div>
+                          )}
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
       }
     </div>
