@@ -608,6 +608,7 @@ export default function StockSection({
   // SORTIES
   // ════════════════════════════════════════════════════════
   const [sortTech,      setSortTech]      = useState("");
+  const [sortTechOpen,  setSortTechOpen]  = useState(false);
   const [sortCart,      setSortCart]      = useState([]);
   const [sortStkSearch, setSortStkSearch] = useState("");
   const [sortSearch,    setSortSearch]    = useState("");
@@ -751,22 +752,40 @@ export default function StockSection({
             <label style={{fontSize:11,fontWeight:700,color:T3,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:.8}}>Technicien</label>
             {techs.length===0
               ? <div style={{background:OL,borderRadius:8,padding:"10px 14px",fontSize:12,color:OD,display:"flex",alignItems:"center",gap:7}}><span style={{flexShrink:0}}>{Ico.alert}</span><span>Aucun technicien — ajoutez-en dans l'onglet <b>Équipe</b></span></div>
-              : <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                  {[...techs].sort((a,b)=>techFullName(a).localeCompare(techFullName(b),"fr")).map(t=>{
-                    const selected=sortTech===t.id;
-                    return (
-                      <button key={t.id} onClick={()=>setSortTech(selected?"":t.id)} style={{
-                        display:"flex",alignItems:"center",gap:10,padding:"9px 12px",
-                        borderRadius:10,border:`1.5px solid ${selected?O:C2}`,
-                        background:selected?OL:C1,cursor:"pointer",fontFamily:FF,textAlign:"left",
-                        transition:"all .12s"
-                      }}>
-                        <TechAvatar t={t} size={34}/>
-                        <span style={{fontSize:13,fontWeight:selected?700:500,color:selected?OD:T1,flex:1}}>{techFullName(t)}</span>
-                        {selected&&<span style={{width:18,height:18,borderRadius:9,background:O,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{Ico.check}</span>}
-                      </button>
-                    );
-                  })}
+              : <div style={{position:"relative"}}>
+                  {/* Trigger */}
+                  <button onClick={()=>setSortTechOpen(o=>!o)} style={{
+                    display:"flex",alignItems:"center",gap:10,padding:"9px 12px",width:"100%",
+                    borderRadius:10,border:`1.5px solid ${sortTech?O:C2}`,
+                    background:sortTech?OL:C1,cursor:"pointer",fontFamily:FF,textAlign:"left",transition:"all .12s"
+                  }}>
+                    {sortTech
+                      ? <><TechAvatar t={techs.find(t=>t.id===sortTech)} size={30}/>
+                          <span style={{fontSize:13,fontWeight:700,color:OD,flex:1}}>{techFullName(techs.find(t=>t.id===sortTech))}</span></>
+                      : <><div style={{width:30,height:30,borderRadius:15,background:C3,flexShrink:0}}/>
+                          <span style={{fontSize:13,color:T5,flex:1}}>— Choisir un technicien —</span></>
+                    }
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T4} strokeWidth="2.5" style={{flexShrink:0,transform:sortTechOpen?"rotate(180deg)":"none",transition:"transform .15s"}}><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                  {/* Dropdown */}
+                  {sortTechOpen&&(
+                    <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:C1,border:`1.5px solid ${C2}`,borderRadius:10,boxShadow:"0 6px 20px rgba(0,0,0,.10)",zIndex:200,overflow:"hidden"}}>
+                      {[...techs].sort((a,b)=>techFullName(a).localeCompare(techFullName(b),"fr")).map(t=>{
+                        const selected=sortTech===t.id;
+                        return (
+                          <button key={t.id} onClick={()=>{setSortTech(t.id);setSortTechOpen(false);}} style={{
+                            display:"flex",alignItems:"center",gap:10,padding:"10px 12px",width:"100%",
+                            border:"none",borderBottom:`1px solid ${C2}`,
+                            background:selected?OL:C1,cursor:"pointer",fontFamily:FF,textAlign:"left"
+                          }}>
+                            <TechAvatar t={t} size={32}/>
+                            <span style={{fontSize:13,fontWeight:selected?700:500,color:selected?OD:T1,flex:1}}>{techFullName(t)}</span>
+                            {selected&&<span style={{color:O,display:"flex"}}>{Ico.check}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
             }
           </div>
