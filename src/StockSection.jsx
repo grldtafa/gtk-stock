@@ -1132,8 +1132,17 @@ export default function StockSection({
           <div style={{display:"grid",gridTemplateColumns:isMob?"1fr":"2fr 1fr",gap:10,marginBottom:10}}>
             <Input label="Désignation *" value={catNom} onChange={e=>setCatNom(e.target.value)} placeholder="Nom de l'article"/>
             <div>
-              <Input label="Catégorie" value={catCat} onChange={e=>setCatCat(e.target.value)} list="cat-grp-list" placeholder="Fibre, Cuivre…"/>
-              <datalist id="cat-grp-list">{catGroups.map(g=><option key={g} value={g}/>)}</datalist>
+              <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                <label style={{fontSize:11,fontWeight:600,color:T3}}>Catégorie</label>
+                <select value={catCat} onChange={e=>setCatCat(e.target.value)}
+                  style={{background:C1,border:`1.5px solid ${catCat?O:C2}`,borderRadius:8,padding:"10px 12px",fontSize:13,color:catCat?T1:T5,fontFamily:FF,outline:"none",cursor:"pointer"}}
+                  onFocus={e=>e.target.style.borderColor=O} onBlur={e=>e.target.style.borderColor=catCat?O:C2}>
+                  <option value="">— Choisir —</option>
+                  <option value="Fibre D3">Fibre D3</option>
+                  <option value="Fibre D2">Fibre D2</option>
+                  <option value="ADSL">ADSL</option>
+                </select>
+              </div>
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:isMob?"1fr":"1fr 130px 130px",gap:10,marginBottom:14}}>
