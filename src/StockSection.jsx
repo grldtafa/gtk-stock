@@ -327,6 +327,7 @@ export default function StockSection({
   const [blLignes,    setBlLignes]    = useState([]);
   const [blCatSearch, setBlCatSearch] = useState("");
   const [blViewId,    setBlViewId]    = useState(null);
+  const [blCartOpen,  setBlCartOpen]  = useState(true); // panier réduit/étendu
 
   const addToCart = (c) => {
     setBlLignes(prev => {
@@ -657,38 +658,42 @@ export default function StockSection({
 
         {/* ── Panier ── */}
         {blLignes.length>0&&(
-          <Card style={{position:"sticky",bottom:isMob?70:16,boxShadow:"0 -2px 16px rgba(0,0,0,.08)"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+          <Card style={{position:"sticky",bottom:isMob?70:16,boxShadow:"0 -4px 20px rgba(0,0,0,.12)",border:`1.5px solid ${O}30`}}>
+            {/* En-tête panier : toujours visible, cliquable pour réduire/étendre */}
+            <div onClick={()=>setBlCartOpen(o=>!o)}
+              style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:blCartOpen?10:0,cursor:"pointer",userSelect:"none"}}>
               <div style={{fontSize:12,fontWeight:800,color:T1,display:"flex",alignItems:"center",gap:6}}>
                 <span style={{background:O,color:"#fff",borderRadius:8,fontSize:10,fontWeight:900,padding:"2px 7px"}}>{blLignes.length}</span>
                 article{blLignes.length!==1?"s":""} sélectionné{blLignes.length!==1?"s":""}
+                {totalBl>0&&<span style={{fontFamily:FM,fontWeight:700,color:O,fontSize:11,marginLeft:4}}>{f(totalBl)}</span>}
               </div>
-              <button onClick={()=>setBlLignes([])} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:T5,textDecoration:"underline"}}>Vider</button>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <button onClick={e=>{e.stopPropagation();setBlLignes([]);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:T5,textDecoration:"underline"}}>Vider</button>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T4} strokeWidth="2.5" style={{transform:blCartOpen?"rotate(180deg)":"none",transition:"transform .15s",flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:10}}>
-              {blLignes.map(l=>(
-                <div key={l.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8}}>
-                  {/* Couleur type */}
-                  <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l.nom}</div>
-                    {l.prix>0&&<div style={{fontSize:10,color:T4,fontFamily:FM}}>{f(l.prix)}</div>}
+            {/* Liste articles — hauteur limitée + scroll interne */}
+            {blCartOpen&&(
+              <div style={{maxHeight:180,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
+                {blLignes.map(l=>(
+                  <div key={l.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
+                    <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l.nom}</div>
+                      {l.prix>0&&<div style={{fontSize:10,color:T4,fontFamily:FM}}>{f(l.prix)}</div>}
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                      <button onClick={()=>cartDelta(l.id,-1)} style={{width:24,height:24,borderRadius:6,background:C2,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:T2}}>−</button>
+                      <input type="number" value={l.qty} onChange={e=>cartSetQty(l.id,e.target.value)} min="1"
+                        style={{width:36,textAlign:"center",fontFamily:FM,fontWeight:800,fontSize:13,border:`1.5px solid ${C2}`,borderRadius:6,padding:"3px 4px",color:T1,background:C1,outline:"none"}}/>
+                      <button onClick={()=>cartDelta(l.id,1)} style={{width:24,height:24,borderRadius:6,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}>+</button>
+                    </div>
+                    <button onClick={()=>setBlLignes(blLignes.filter(x=>x.id!==l.id))} style={{background:RDL,border:`1px solid ${RD}20`,borderRadius:6,cursor:"pointer",color:RD,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>{Ico.close}</button>
                   </div>
-                  {/* Compteur +/- */}
-                  <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                    <button onClick={()=>cartDelta(l.id,-1)} style={{width:24,height:24,borderRadius:6,background:C2,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:T2}}>−</button>
-                    <input type="number" value={l.qty} onChange={e=>cartSetQty(l.id,e.target.value)} min="1"
-                      style={{width:36,textAlign:"center",fontFamily:FM,fontWeight:800,fontSize:13,border:`1.5px solid ${C2}`,borderRadius:6,padding:"3px 4px",color:T1,background:C1,outline:"none"}}/>
-                    <button onClick={()=>cartDelta(l.id,1)} style={{width:24,height:24,borderRadius:6,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}>+</button>
-                  </div>
-                  <button onClick={()=>setBlLignes(blLignes.filter(x=>x.id!==l.id))} style={{background:RDL,border:`1px solid ${RD}20`,borderRadius:6,cursor:"pointer",color:RD,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>{Ico.close}</button>
-                </div>
-              ))}
-            </div>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
-              {totalBl>0&&<span style={{fontFamily:FM,fontWeight:800,color:O,fontSize:14}}>{f(totalBl)}</span>}
-              <Btn onClick={validerBL} color={GR} style={{flex:1}}>{Ico.check} Valider la réception</Btn>
-            </div>
+                ))}
+              </div>
+            )}
+            <Btn onClick={validerBL} color={GR} style={{width:"100%"}}>{Ico.check} Valider la réception</Btn>
           </Card>
         )}
       </>)}
@@ -701,6 +706,7 @@ export default function StockSection({
   const [sortTech,      setSortTech]      = useState("");
   const [sortTechOpen,  setSortTechOpen]  = useState(false);
   const [sortCart,      setSortCart]      = useState([]);
+  const [sortCartOpen,  setSortCartOpen]  = useState(true);
   const [sortStkSearch, setSortStkSearch] = useState("");
   const [sortSearch,    setSortSearch]    = useState("");
   const [sortHistTech,  setSortHistTech]  = useState("");
@@ -935,36 +941,40 @@ export default function StockSection({
           </div>
           {/* ── Panier sorties ── */}
           {sortCart.length>0&&(
-            <Card style={{position:"sticky",bottom:isMob?70:16,boxShadow:"0 -2px 16px rgba(0,0,0,.08)"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+            <Card style={{position:"sticky",bottom:isMob?70:16,boxShadow:"0 -4px 20px rgba(0,0,0,.12)",border:`1.5px solid ${O}30`}}>
+              <div onClick={()=>setSortCartOpen(o=>!o)}
+                style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:sortCartOpen?10:0,cursor:"pointer",userSelect:"none"}}>
                 <div style={{fontSize:12,fontWeight:800,color:T1,display:"flex",alignItems:"center",gap:6}}>
                   <span style={{background:O,color:"#fff",borderRadius:8,fontSize:10,fontWeight:900,padding:"2px 7px"}}>{sortCart.length}</span>
                   article{sortCart.length!==1?"s":""} sélectionné{sortCart.length!==1?"s":""}
+                  {sortTotal>0&&<span style={{fontFamily:FM,fontWeight:700,color:O,fontSize:11,marginLeft:4}}>{f(sortTotal)}</span>}
                 </div>
-                <button onClick={()=>setSortCart([])} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:T5,textDecoration:"underline"}}>Vider</button>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <button onClick={e=>{e.stopPropagation();setSortCart([]);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:T5,textDecoration:"underline"}}>Vider</button>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T4} strokeWidth="2.5" style={{transform:sortCartOpen?"rotate(180deg)":"none",transition:"transform .15s",flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
               </div>
-              <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:10}}>
-                {sortCart.map(l=>(
-                  <div key={l.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8}}>
-                    <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l.nom}</div>
-                      <div style={{fontSize:10,color:T5,fontFamily:FM}}>max {l.stock} en stock</div>
+              {sortCartOpen&&(
+                <div style={{maxHeight:180,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
+                  {sortCart.map(l=>(
+                    <div key={l.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
+                      <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l.nom}</div>
+                        <div style={{fontSize:10,color:T5,fontFamily:FM}}>max {l.stock} en stock</div>
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                        <button onClick={()=>sortCartDelta(l.id,-1)} style={{width:24,height:24,borderRadius:6,background:C2,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:T2}}>−</button>
+                        <input type="number" value={l.qty} onChange={e=>sortCartSetQty(l.id,e.target.value)} min="1" max={l.stock}
+                          style={{width:36,textAlign:"center",fontFamily:FM,fontWeight:800,fontSize:13,border:`1.5px solid ${C2}`,borderRadius:6,padding:"3px 4px",color:T1,background:C1,outline:"none"}}/>
+                        <button onClick={()=>sortCartDelta(l.id,1)} style={{width:24,height:24,borderRadius:6,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}>+</button>
+                      </div>
+                      <button onClick={()=>setSortCart(sortCart.filter(x=>x.id!==l.id))} style={{background:RDL,border:`1px solid ${RD}20`,borderRadius:6,cursor:"pointer",color:RD,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>{Ico.close}</button>
                     </div>
-                    <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                      <button onClick={()=>sortCartDelta(l.id,-1)} style={{width:24,height:24,borderRadius:6,background:C2,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:T2}}>−</button>
-                      <input type="number" value={l.qty} onChange={e=>sortCartSetQty(l.id,e.target.value)} min="1" max={l.stock}
-                        style={{width:36,textAlign:"center",fontFamily:FM,fontWeight:800,fontSize:13,border:`1.5px solid ${C2}`,borderRadius:6,padding:"3px 4px",color:T1,background:C1,outline:"none"}}/>
-                      <button onClick={()=>sortCartDelta(l.id,1)} style={{width:24,height:24,borderRadius:6,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}>+</button>
-                    </div>
-                    <button onClick={()=>setSortCart(sortCart.filter(x=>x.id!==l.id))} style={{background:RDL,border:`1px solid ${RD}20`,borderRadius:6,cursor:"pointer",color:RD,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>{Ico.close}</button>
-                  </div>
-                ))}
-              </div>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
-                {sortTotal>0&&<span style={{fontFamily:FM,fontWeight:800,color:O,fontSize:14}}>{f(sortTotal)}</span>}
-                <Btn onClick={doSortie} disabled={!sortTech||techs.length===0} color={GR} style={{flex:1}}>{Ico.check} Valider la sortie</Btn>
-              </div>
+                  ))}
+                </div>
+              )}
+              <Btn onClick={doSortie} disabled={!sortTech||techs.length===0} color={GR} style={{width:"100%"}}>{Ico.check} Valider la sortie</Btn>
             </Card>
           )}
         </div>
