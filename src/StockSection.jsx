@@ -1,4 +1,18 @@
 import { useState, useEffect, useRef } from "react";
+import emailjs from "@emailjs/browser";
+
+// ─── Alertes stock par email ───
+const ALERT_EMAILS = ["contact@gtkreseaux.fr", "g.michelet@gtkreseaux.fr"];
+const sendStockAlert = async (alertItems, createdBy, dateStr) => {
+  const EJS_SVC  = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+  const EJS_TPL  = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+  const EJS_KEY  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+  if(!EJS_SVC||!EJS_TPL||!EJS_KEY) return;
+  const articles = alertItems.map(a=>`• ${a.nom} : ${a.qty||0} restant${(a.qty||0)>1?"s":""} (seuil : ${a.seuil})`).join("\n");
+  for(const email of ALERT_EMAILS){
+    await emailjs.send(EJS_SVC, EJS_TPL, {to_email:email, articles, createdBy, date:dateStr}, EJS_KEY);
+  }
+};
 
 // ─── Constantes GTK ───
 const O   = "#FC7701";
@@ -764,6 +778,14 @@ export default function StockSection({
     setStkOut(ns2); onSaveStkOut(ns2);
     setSortCart([]); setSortTech(""); setShowForm(false);
     onToast(`${newOuts.length} article${newOuts.length>1?"s":""} sorti${newOuts.length>1?"s":""} → ${tn} ✓`);
+    // ── Envoi email si des articles ont atteint/dépassé leur seuil ──
+    const alertItems = ns.filter(a=>(a.seuil||0)>0 && (a.qty||0)<=(a.seuil||0));
+    if(alertItems.length>0){
+      const dateStr = now.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"})+" "+time;
+      sendStockAlert(alertItems, currentUser?.name||"—", dateStr)
+        .then(()=>onToast("📧 Alerte stock envoyée par email"))
+        .catch(e=>console.error("Erreur email alert:",e));
+    }
   };
 
   const sortTotal=sortCart.reduce((s,l)=>s+(l.qty||0)*(l.prix||0),0);
