@@ -1153,8 +1153,8 @@ export default function StockSection({
       acc[k].val+=(s.qty||0)*(s.prix||0);
       return acc;
     },{});
-    const topTechs=Object.values(byTech).sort((a,b)=>b.qty-a.qty);
-    const maxTech=Math.max(...topTechs.map(t=>t.qty),1);
+    const topTechs=Object.values(byTech).sort((a,b)=>b.val-a.val);
+    const maxTech=Math.max(...topTechs.map(t=>t.val),1);
 
     const barColors=[O,BL,PU,GR,"#f59e0b","#06b6d4"];
 
@@ -1234,12 +1234,11 @@ export default function StockSection({
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                           <span style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.techNom||"Inconnu"}</span>
-                          <span style={{fontSize:11,fontFamily:FM,fontWeight:800,color:PU,flexShrink:0,marginLeft:8}}>{t.qty} pcs</span>
+                          <span style={{fontSize:12,fontFamily:FM,fontWeight:800,color:PU,flexShrink:0,marginLeft:8}}>{f(t.val)}</span>
                         </div>
                         <div style={{height:6,background:C2,borderRadius:3}}>
-                          <div style={{height:"100%",background:PU,borderRadius:3,width:`${(t.qty/maxTech)*100}%`,transition:"width .4s"}}/>
+                          <div style={{height:"100%",background:PU,borderRadius:3,width:`${(t.val/maxTech)*100}%`,transition:"width .4s"}}/>
                         </div>
-                        {t.val>0&&<div style={{fontSize:9,color:T5,fontFamily:FM,marginTop:2}}>{f(t.val)} consommés</div>}
                       </div>
                     </div>
                   );
