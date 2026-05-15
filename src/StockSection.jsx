@@ -318,7 +318,8 @@ export default function StockSection({
     const d=blDate||new Date().toISOString().slice(0,10);
     const seq=String(bls.length+1).padStart(4,"0");
     const num=`BR-${d.replace(/-/g,"")}-${seq}`;
-    const newBl={id:Date.now(),num,date:d,dateLabel:fmtDate(d),ym:d.slice(0,7),statut:"validé",lignes:[...blLignes]};
+    const time=new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+    const newBl={id:Date.now(),num,date:d,time,dateLabel:fmtDate(d),ym:d.slice(0,7),statut:"validé",lignes:[...blLignes]};
     const ns=[...stk];
     blLignes.forEach(l=>{
       const catItem=catalogue.find(c=>c.nom===l.nom);
@@ -464,7 +465,7 @@ export default function StockSection({
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:700,color:T1,fontFamily:FM}}>{bl.num}</div>
-                    <div style={{fontSize:11,color:T4,marginTop:1}}>{bl.dateLabel||fmtDate(bl.date)}</div>
+                    <div style={{fontSize:11,color:T4,marginTop:1}}>{bl.dateLabel||fmtDate(bl.date)}{bl.time&&<span style={{color:T5,marginLeft:6}}>{bl.time}</span>}</div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
                     <Badge bg={GRL} c={GR}>{bl.lignes?.length||0} art.</Badge>
@@ -738,15 +739,17 @@ export default function StockSection({
     }
     const tech=techs.find(t=>t.id===sortTech);
     const tn=tech?techFullName(tech):sortTech;
-    const date=new Date().toISOString().slice(0,10);
-    const ym=new Date().toISOString().slice(0,7);
+    const now=new Date();
+    const date=now.toISOString().slice(0,10);
+    const ym=now.toISOString().slice(0,7);
+    const time=now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
     let ns=[...stk];
     const newOuts=[];
     for(const item of sortCart){
       const art=ns.find(a=>a.nom===item.nom);
       if(!art||(art.qty||0)<item.qty){onToast(`Stock insuffisant pour ${item.nom}`,"warn");return;}
       ns=ns.map(a=>a.nom===item.nom?{...a,qty:(a.qty||0)-item.qty}:a);
-      newOuts.push({id:Date.now()+Math.random(),techId:sortTech,techNom:tn,nom:item.nom,cat:item.cat||"",type:item.type||"",qty:item.qty,prix:item.prix||0,date,ym});
+      newOuts.push({id:Date.now()+Math.random(),techId:sortTech,techNom:tn,nom:item.nom,cat:item.cat||"",type:item.type||"",qty:item.qty,prix:item.prix||0,date,time,ym});
     }
     setStk(ns); onSaveStock(ns);
     const ns2=[...newOuts,...stkOut];
@@ -1075,7 +1078,7 @@ export default function StockSection({
                                 <div style={{display:"flex",gap:6,marginTop:2,alignItems:"center",flexWrap:"wrap"}}>
                                   <span style={{fontSize:11,color:T4}}>{s.techNom}</span>
                                   <span style={{fontSize:10,color:T5}}>·</span>
-                                  <span style={{fontSize:11,color:T5}}>{s.date?fmtDate(s.date):s.ym||"—"}</span>
+                                  <span style={{fontSize:11,color:T5}}>{s.date?fmtDate(s.date):s.ym||"—"}{s.time&&<span style={{marginLeft:4}}>{s.time}</span>}</span>
                                   {s.type&&<Badge bg={TYPE_STYLE[s.type]?.bg||C3} c={TYPE_STYLE[s.type]?.c||T4}>{s.type}</Badge>}
                                 </div>
                               </div>
