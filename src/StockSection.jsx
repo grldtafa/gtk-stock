@@ -328,7 +328,8 @@ export default function StockSection({
   const [blCatSearch, setBlCatSearch] = useState("");
   const [blViewId,    setBlViewId]    = useState(null);
   const [blCartOpen,  setBlCartOpen]  = useState(true); // panier réduit/étendu
-  const blCartRef  = useRef(null);
+  const blCartRef   = useRef(null);
+  const blItemRefs  = useRef({});
 
   const addToCart = (c) => {
     setBlCartOpen(true);
@@ -337,7 +338,10 @@ export default function StockSection({
       if(existing) return prev.map(l=>l.nom===c.nom?{...l,qty:l.qty+1}:l);
       return [...prev,{id:Date.now()+Math.random(),nom:c.nom,cat:c.cat||"",type:c.type||"",qty:1,prix:c.prix||0}];
     });
-    setTimeout(()=>blCartRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"}),50);
+    setTimeout(()=>{
+      blCartRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"});
+      blItemRefs.current[c.nom]?.scrollIntoView({behavior:"smooth",block:"nearest"});
+    },80);
   };
   const cartDelta = (id, delta) => {
     setBlLignes(prev=>prev.map(l=>l.id===id?{...l,qty:Math.max(0,l.qty+delta)}:l).filter(l=>l.qty>0));
@@ -680,7 +684,7 @@ export default function StockSection({
             {blCartOpen&&(
               <div style={{maxHeight:180,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
                 {blLignes.map(l=>(
-                  <div key={l.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
+                  <div key={l.id} ref={el=>{if(el)blItemRefs.current[l.nom]=el;}} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
                     <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l.nom}</div>
@@ -712,7 +716,8 @@ export default function StockSection({
   const [sortTechOpen,  setSortTechOpen]  = useState(false);
   const [sortCart,      setSortCart]      = useState([]);
   const [sortCartOpen,  setSortCartOpen]  = useState(true);
-  const sortCartRef = useRef(null);
+  const sortCartRef  = useRef(null);
+  const sortItemRefs = useRef({});
   const [sortStkSearch, setSortStkSearch] = useState("");
   const [sortSearch,    setSortSearch]    = useState("");
   const [sortHistTech,  setSortHistTech]  = useState("");
@@ -734,7 +739,10 @@ export default function StockSection({
       if(ex) return prev.map(l=>l.nom===art.nom?{...l,qty:Math.min(l.qty+1,art.qty||0)}:l);
       return [...prev,{id:Date.now()+Math.random(),nom:art.nom,cat:art.cat||"",type:art.type||"",qty:1,prix:art.prix||0,stock:art.qty||0}];
     });
-    setTimeout(()=>sortCartRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"}),50);
+    setTimeout(()=>{
+      sortCartRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"});
+      sortItemRefs.current[art.nom]?.scrollIntoView({behavior:"smooth",block:"nearest"});
+    },80);
   };
   const sortCartDelta = (id, delta) => {
     setSortCart(prev=>{
@@ -966,7 +974,7 @@ export default function StockSection({
               {sortCartOpen&&(
                 <div style={{maxHeight:180,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
                   {sortCart.map(l=>(
-                    <div key={l.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
+                    <div key={l.id} ref={el=>{if(el)sortItemRefs.current[l.nom]=el;}} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
                       <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l.nom}</div>
