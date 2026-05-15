@@ -7,9 +7,12 @@ import StockSection from "./StockSection.jsx";
 const O  = "#FC7701";
 const FF = "'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
 
-// ─── Identifiants (à modifier ici si besoin) ───
-const APP_USER = "ADMIN";
-const APP_PASS = "Gtkreseaux13.";
+// ─── Comptes utilisateurs ───
+const USERS = [
+  { user:"ADMIN",     pass:"Gtkreseaux13.", name:"Kevin",     isAdmin:true },
+  { user:"GUILLAUME", pass:"Gtkreseaux13.", name:"Guillaume", isAdmin:true },
+  { user:"GENCI",     pass:"Gtkreseaux13.", name:"Genci",     isAdmin:true },
+];
 
 // ─── Écran de connexion ───
 function LoginScreen({ onLogin }) {
@@ -19,9 +22,11 @@ function LoginScreen({ onLogin }) {
   const [show, setShow]     = useState(false);
 
   const handle = () => {
-    if(user.trim() === APP_USER && pass === APP_PASS) {
+    const found = USERS.find(u => u.user === user.trim().toUpperCase() && u.pass === pass);
+    if(found) {
       sessionStorage.setItem("gtk-auth","1");
-      onLogin();
+      sessionStorage.setItem("gtk-user", JSON.stringify({name:found.name, isAdmin:found.isAdmin, user:found.user}));
+      onLogin(found);
     } else {
       setErr("Identifiant ou mot de passe incorrect");
     }
@@ -80,6 +85,10 @@ function LoginScreen({ onLogin }) {
 export default function App() {
   const [loading,    setLoading]    = useState(true);
   const [loggedIn,   setLoggedIn]   = useState(()=>sessionStorage.getItem("gtk-auth")==="1");
+  const [currentUser,setCurrentUser]= useState(()=>{
+    try{ const s=sessionStorage.getItem("gtk-user"); return s?JSON.parse(s):{name:"Kevin",isAdmin:true,user:"ADMIN"}; }
+    catch(e){ return {name:"Kevin",isAdmin:true,user:"ADMIN"}; }
+  });
 
   const [stk,         setStk]         = useState([]);
   const [stkOut,      setStkOut]      = useState([]);
@@ -184,7 +193,7 @@ export default function App() {
     } catch(e) { addToast("Erreur sauvegarde méta","err"); console.error(e); }
   }, [addToast]);
 
-  if (!loggedIn) return <LoginScreen onLogin={()=>setLoggedIn(true)} />;
+  if (!loggedIn) return <LoginScreen onLogin={(u)=>{setCurrentUser(u);setLoggedIn(true);}} />;
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"#0a0a0a"}}>
@@ -214,10 +223,13 @@ export default function App() {
             <div style={{fontSize:10,color:"#94a3b8",marginLeft:4}}>Chargement…</div>
           )}
         </div>
-        <button onClick={()=>{sessionStorage.removeItem("gtk-auth");setLoggedIn(false);}}
-          style={{background:"none",border:"1px solid #e4eaf0",borderRadius:6,padding:"5px 12px",fontSize:11,color:"#475569",cursor:"pointer",fontFamily:FF}}>
-          Déconnexion
-        </button>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{fontSize:12,color:"#64748b",fontWeight:600}}>{currentUser.name}</div>
+          <button onClick={()=>{sessionStorage.removeItem("gtk-auth");sessionStorage.removeItem("gtk-user");setLoggedIn(false);}}
+            style={{background:"none",border:"1px solid #e4eaf0",borderRadius:6,padding:"5px 12px",fontSize:11,color:"#475569",cursor:"pointer",fontFamily:FF}}>
+            Déconnexion
+          </button>
+        </div>
       </div>
 
       {/* Content */}
@@ -236,7 +248,8 @@ export default function App() {
             onSaveStkOut={(ns)=>saveStockOut(ns||stkOut)}
             onSaveTechs={saveTechs}
             onToast={addToast}
-            isAdmin={true}
+            isAdmin={currentUser.isAdmin}
+            currentUser={currentUser}
           />
         </div>
       </div>

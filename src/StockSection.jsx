@@ -113,7 +113,7 @@ export default function StockSection({
   fournisseurs=[], setFournisseurs,
   techs=[], setTechs,
   onSaveMeta, onSaveStock, onSaveStkOut, onSaveTechs,
-  onToast, isAdmin=false
+  onToast, isAdmin=false, currentUser=null
 }) {
   const [tab, setTab] = useState("inventaire");
   const [isMob, setIsMob] = useState(typeof window!=="undefined"&&window.innerWidth<768);
@@ -319,7 +319,8 @@ export default function StockSection({
     const seq=String(bls.length+1).padStart(4,"0");
     const num=`BR-${d.replace(/-/g,"")}-${seq}`;
     const time=new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
-    const newBl={id:Date.now(),num,date:d,time,dateLabel:fmtDate(d),ym:d.slice(0,7),statut:"validé",lignes:[...blLignes]};
+    const createdBy=currentUser?.name||"—";
+    const newBl={id:Date.now(),num,date:d,time,createdBy,dateLabel:fmtDate(d),ym:d.slice(0,7),statut:"validé",lignes:[...blLignes]};
     const ns=[...stk];
     blLignes.forEach(l=>{
       const catItem=catalogue.find(c=>c.nom===l.nom);
@@ -465,7 +466,11 @@ export default function StockSection({
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:700,color:T1,fontFamily:FM}}>{bl.num}</div>
-                    <div style={{fontSize:11,color:T4,marginTop:1}}>{bl.dateLabel||fmtDate(bl.date)}{bl.time&&<span style={{color:T5,marginLeft:6}}>{bl.time}</span>}</div>
+                    <div style={{fontSize:11,color:T4,marginTop:1,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                      <span>{bl.dateLabel||fmtDate(bl.date)}</span>
+                      {bl.time&&<span style={{color:T5}}>{bl.time}</span>}
+                      {bl.createdBy&&<span style={{color:O,fontWeight:700}}>· {bl.createdBy}</span>}
+                    </div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
                     <Badge bg={GRL} c={GR}>{bl.lignes?.length||0} art.</Badge>
@@ -749,7 +754,7 @@ export default function StockSection({
       const art=ns.find(a=>a.nom===item.nom);
       if(!art||(art.qty||0)<item.qty){onToast(`Stock insuffisant pour ${item.nom}`,"warn");return;}
       ns=ns.map(a=>a.nom===item.nom?{...a,qty:(a.qty||0)-item.qty}:a);
-      newOuts.push({id:Date.now()+Math.random(),techId:sortTech,techNom:tn,nom:item.nom,cat:item.cat||"",type:item.type||"",qty:item.qty,prix:item.prix||0,date,time,ym});
+      newOuts.push({id:Date.now()+Math.random(),techId:sortTech,techNom:tn,nom:item.nom,cat:item.cat||"",type:item.type||"",qty:item.qty,prix:item.prix||0,date,time,ym,createdBy:currentUser?.name||"—"});
     }
     setStk(ns); onSaveStock(ns);
     const ns2=[...newOuts,...stkOut];
@@ -1079,6 +1084,7 @@ export default function StockSection({
                                   <span style={{fontSize:11,color:T4}}>{s.techNom}</span>
                                   <span style={{fontSize:10,color:T5}}>·</span>
                                   <span style={{fontSize:11,color:T5}}>{s.date?fmtDate(s.date):s.ym||"—"}{s.time&&<span style={{marginLeft:4}}>{s.time}</span>}</span>
+                                  {s.createdBy&&<><span style={{fontSize:10,color:T5}}>·</span><span style={{fontSize:11,color:O,fontWeight:700}}>{s.createdBy}</span></>}
                                   {s.type&&<Badge bg={TYPE_STYLE[s.type]?.bg||C3} c={TYPE_STYLE[s.type]?.c||T4}>{s.type}</Badge>}
                                 </div>
                               </div>
