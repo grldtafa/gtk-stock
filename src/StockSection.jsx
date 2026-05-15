@@ -73,6 +73,7 @@ const Ico = {
   noResult:IcoSvg(<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,28),
   stats:   IcoSvg(<><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>,18),
   img:     IcoSvg(<><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></>,16),
+  refresh: IcoSvg(<><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></>,14),
 };
 
 const TABS = [
@@ -151,6 +152,38 @@ export default function StockSection({
     setStk(ns); onSaveStock(ns); setEditQty(null); onToast("Quantité mise à jour");
   };
 
+  // Recalcule le stock exactement depuis les BR et les sorties
+  const recalcStockFromBRs = () => {
+    if(!window.confirm("Recalculer l'inventaire depuis les bons de réception et les sorties ?\nLes quantités actuelles seront remplacées par le calcul exact.")) return;
+    // Construire un map nom → qty depuis les BR
+    const fromBRs = {};
+    bls.forEach(bl=>{
+      (bl.lignes||[]).forEach(l=>{
+        fromBRs[l.nom] = (fromBRs[l.nom]||0) + (l.qty||0);
+      });
+    });
+    // Soustraire les sorties
+    stkOut.forEach(s=>{
+      if(fromBRs[s.nom]!==undefined){
+        fromBRs[s.nom] = Math.max(0, (fromBRs[s.nom]||0) - (s.qty||0));
+      }
+    });
+    // Mettre à jour le stock en conservant les métadonnées (prix, seuil, type…)
+    const ns = stk.map(a=>({
+      ...a,
+      qty: fromBRs[a.nom]!==undefined ? fromBRs[a.nom] : 0
+    }));
+    // Ajouter les articles dans les BR mais pas encore dans stk
+    Object.entries(fromBRs).forEach(([nom,qty])=>{
+      if(!ns.find(a=>a.nom===nom)){
+        const blLine = bls.flatMap(b=>b.lignes||[]).find(l=>l.nom===nom);
+        ns.push({id:Date.now()+Math.random(),nom,cat:blLine?.cat||"",type:blLine?.type||"",prix:blLine?.prix||0,qty,seuil:0});
+      }
+    });
+    setStk(ns); onSaveStock(ns);
+    onToast(`Inventaire recalculé · ${ns.length} article${ns.length!==1?"s":""} mis à jour ✓`);
+  };
+
   const TYPE_TABS = ["Tous", "Consommable", "Outillage"];
 
   const renderInventaire = () => (
@@ -220,6 +253,11 @@ export default function StockSection({
             {key:"qty",label:"Quantité"},{key:"seuil",label:"Seuil"},{key:"prix",label:"Prix unit."}
           ],"inventaire")}>
             {Ico.csv}{!isMob&&"CSV"}
+          </Btn>
+        )}
+        {isAdmin && bls.length>0 && (
+          <Btn small outline color={RD} onClick={recalcStockFromBRs} title="Recalculer les quantités depuis les BR et les sorties">
+            {Ico.refresh}{!isMob&&"Recalculer"}
           </Btn>
         )}
       </div>
