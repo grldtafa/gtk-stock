@@ -328,13 +328,16 @@ export default function StockSection({
   const [blCatSearch, setBlCatSearch] = useState("");
   const [blViewId,    setBlViewId]    = useState(null);
   const [blCartOpen,  setBlCartOpen]  = useState(true); // panier réduit/étendu
+  const blCartRef  = useRef(null);
 
   const addToCart = (c) => {
+    setBlCartOpen(true);
     setBlLignes(prev => {
       const existing=prev.find(l=>l.nom===c.nom);
       if(existing) return prev.map(l=>l.nom===c.nom?{...l,qty:l.qty+1}:l);
       return [...prev,{id:Date.now()+Math.random(),nom:c.nom,cat:c.cat||"",type:c.type||"",qty:1,prix:c.prix||0}];
     });
+    setTimeout(()=>blCartRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"}),50);
   };
   const cartDelta = (id, delta) => {
     setBlLignes(prev=>prev.map(l=>l.id===id?{...l,qty:Math.max(0,l.qty+delta)}:l).filter(l=>l.qty>0));
@@ -658,7 +661,8 @@ export default function StockSection({
 
         {/* ── Panier ── */}
         {blLignes.length>0&&(
-          <Card style={{position:"sticky",bottom:isMob?70:16,boxShadow:"0 -4px 20px rgba(0,0,0,.12)",border:`1.5px solid ${O}30`}}>
+          <div ref={blCartRef} style={{position:"sticky",bottom:isMob?70:16}}>
+          <Card style={{boxShadow:"0 -4px 20px rgba(0,0,0,.12)",border:`1.5px solid ${O}30`}}>
             {/* En-tête panier : toujours visible, cliquable pour réduire/étendre */}
             <div onClick={()=>setBlCartOpen(o=>!o)}
               style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:blCartOpen?10:0,cursor:"pointer",userSelect:"none"}}>
@@ -695,6 +699,7 @@ export default function StockSection({
             )}
             <Btn onClick={validerBL} color={GR} style={{width:"100%"}}>{Ico.check} Valider la réception</Btn>
           </Card>
+          </div>
         )}
       </>)}
     </div>
@@ -707,6 +712,7 @@ export default function StockSection({
   const [sortTechOpen,  setSortTechOpen]  = useState(false);
   const [sortCart,      setSortCart]      = useState([]);
   const [sortCartOpen,  setSortCartOpen]  = useState(true);
+  const sortCartRef = useRef(null);
   const [sortStkSearch, setSortStkSearch] = useState("");
   const [sortSearch,    setSortSearch]    = useState("");
   const [sortHistTech,  setSortHistTech]  = useState("");
@@ -722,11 +728,13 @@ export default function StockSection({
     const inCart = sortCart.find(l=>l.nom===art.nom);
     const dispo = (art.qty||0) - (inCart?.qty||0);
     if(dispo<=0){ onToast(`Stock épuisé pour ${art.nom}`,"warn"); return; }
+    setSortCartOpen(true);
     setSortCart(prev=>{
       const ex=prev.find(l=>l.nom===art.nom);
       if(ex) return prev.map(l=>l.nom===art.nom?{...l,qty:Math.min(l.qty+1,art.qty||0)}:l);
       return [...prev,{id:Date.now()+Math.random(),nom:art.nom,cat:art.cat||"",type:art.type||"",qty:1,prix:art.prix||0,stock:art.qty||0}];
     });
+    setTimeout(()=>sortCartRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"}),50);
   };
   const sortCartDelta = (id, delta) => {
     setSortCart(prev=>{
@@ -941,7 +949,8 @@ export default function StockSection({
           </div>
           {/* ── Panier sorties ── */}
           {sortCart.length>0&&(
-            <Card style={{position:"sticky",bottom:isMob?70:16,boxShadow:"0 -4px 20px rgba(0,0,0,.12)",border:`1.5px solid ${O}30`}}>
+            <div ref={sortCartRef} style={{position:"sticky",bottom:isMob?70:16}}>
+            <Card style={{boxShadow:"0 -4px 20px rgba(0,0,0,.12)",border:`1.5px solid ${O}30`}}>
               <div onClick={()=>setSortCartOpen(o=>!o)}
                 style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:sortCartOpen?10:0,cursor:"pointer",userSelect:"none"}}>
                 <div style={{fontSize:12,fontWeight:800,color:T1,display:"flex",alignItems:"center",gap:6}}>
@@ -976,6 +985,7 @@ export default function StockSection({
               )}
               <Btn onClick={doSortie} disabled={!sortTech||techs.length===0} color={GR} style={{width:"100%"}}>{Ico.check} Valider la sortie</Btn>
             </Card>
+            </div>
           )}
         </div>
       )}
