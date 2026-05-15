@@ -10,8 +10,8 @@ const FF = "'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-se
 // ─── Comptes utilisateurs ───
 const USERS = [
   { user:"ADMIN",     pass:"Gtkreseaux13.", name:"Kevin",     isAdmin:true },
-  { user:"GUILLAUME", pass:"Gtkreseaux13.", name:"Guillaume", isAdmin:true },
-  { user:"GENCI",     pass:"Gtkreseaux13.", name:"Genci",     isAdmin:true },
+  { user:"GTKGUILLAUME", pass:"Gtkreseaux13.", name:"Guillaume", isAdmin:true },
+  { user:"GTKGENCI",     pass:"Gtkreseaux13.", name:"Genci",     isAdmin:true },
 ];
 
 // ─── Écran de connexion ───
