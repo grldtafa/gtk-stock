@@ -113,7 +113,8 @@ export default function StockSection({
   fournisseurs=[], setFournisseurs,
   techs=[], setTechs,
   onSaveMeta, onSaveStock, onSaveStkOut, onSaveTechs,
-  onToast, isAdmin=false, currentUser=null
+  onToast, isAdmin=false, currentUser=null,
+  budgetMensuel=0, onSaveBudget
 }) {
   const [tab, setTab] = useState("inventaire");
   const [isMob, setIsMob] = useState(typeof window!=="undefined"&&window.innerWidth<768);
@@ -1123,6 +1124,9 @@ export default function StockSection({
   // ════════════════════════════════════════════════════════
   // STATS
   // ════════════════════════════════════════════════════════
+  const [budgetEdit, setBudgetEdit] = useState(false);
+  const [budgetInput, setBudgetInput] = useState("");
+
   const renderStats = () => {
     // Uniquement les consommables dans les stats
     const stkOutConso = stkOut.filter(s=>s.type==="Consommable");
@@ -1161,8 +1165,115 @@ export default function StockSection({
 
     const barColors=[O,BL,PU,GR,"#f59e0b","#06b6d4"];
 
+    // ── KPI : Budget mensuel ──
+    const consoMois = byMonth[ymNow]?.val || 0;
+    const pctBudget = budgetMensuel>0 ? Math.min((consoMois/budgetMensuel)*100,100) : 0;
+    const budgetColor = pctBudget>=100?RD:pctBudget>=75?"#d97706":GR;
+
+    // ── KPI : Évolution mois/mois ──
+    const allMonths = Object.keys(byMonth).sort();
+    const idxNow = allMonths.indexOf(ymNow);
+    const prevYm = idxNow>0?allMonths[idxNow-1]:null;
+    const consoPrec = prevYm?byMonth[prevYm]?.val||0:null;
+    const evolution = consoPrec!==null&&consoPrec>0 ? ((consoMois-consoPrec)/consoPrec*100) : null;
+
+    // ── KPI : Articles à réapprovisionner (consommables sous seuil, qty>0) ──
+    const aReappro = stk.filter(a=>a.type==="Consommable"&&(a.seuil||0)>0&&(a.qty||0)<=a.seuil);
+
+    // ── KPI : Stock dormant (consommables avec qty>0 jamais sortis) ──
+    const sortiNoms = new Set(stkOutConso.map(s=>s.nom));
+    const dormant = stk.filter(a=>a.type==="Consommable"&&(a.qty||0)>0&&!sortiNoms.has(a.nom));
+
     return (
       <div style={{display:"flex",flexDirection:"column",gap:14}}>
+
+        {/* ── Ligne KPI ── */}
+        <div style={{display:"grid",gridTemplateColumns:isMob?"1fr 1fr":"repeat(4,1fr)",gap:10}}>
+
+          {/* Budget mensuel */}
+          <Card style={{padding:"14px 16px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>Budget mensuel</div>
+            {budgetEdit ? (
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <input autoFocus type="number" value={budgetInput} onChange={e=>setBudgetInput(e.target.value)}
+                  placeholder="Ex: 500"
+                  style={{width:"100%",border:`1.5px solid ${O}`,borderRadius:6,padding:"5px 8px",fontSize:13,fontFamily:FM,fontWeight:700,outline:"none",color:T1}}
+                  onKeyDown={e=>{
+                    if(e.key==="Enter"){const v=parseFloat(budgetInput)||0;onSaveBudget&&onSaveBudget(v);setBudgetEdit(false);}
+                    if(e.key==="Escape") setBudgetEdit(false);
+                  }}/>
+                <button onClick={()=>{const v=parseFloat(budgetInput)||0;onSaveBudget&&onSaveBudget(v);setBudgetEdit(false);}}
+                  style={{background:O,border:"none",borderRadius:6,padding:"5px 8px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:11}}>OK</button>
+              </div>
+            ) : (
+              <>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+                  <span style={{fontSize:18,fontWeight:900,fontFamily:FM,color:budgetMensuel>0?budgetColor:T1}}>{f(consoMois)}</span>
+                  {budgetMensuel>0&&<span style={{fontSize:10,color:T5}}>/ {f(budgetMensuel)}</span>}
+                </div>
+                {budgetMensuel>0&&(
+                  <div style={{height:5,background:C2,borderRadius:3,marginBottom:6}}>
+                    <div style={{height:"100%",background:budgetColor,borderRadius:3,width:`${pctBudget}%`,transition:"width .4s"}}/>
+                  </div>
+                )}
+                <button onClick={()=>{setBudgetInput(budgetMensuel||"");setBudgetEdit(true);}}
+                  style={{background:"none",border:`1px solid ${C2}`,borderRadius:5,padding:"3px 8px",fontSize:10,color:T4,cursor:"pointer",width:"100%"}}>
+                  {budgetMensuel>0?"Modifier l'objectif":"Définir un objectif"}
+                </button>
+              </>
+            )}
+          </Card>
+
+          {/* Évolution mois/mois */}
+          <Card style={{padding:"14px 16px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>Évolution</div>
+            {evolution!==null ? (
+              <>
+                <div style={{fontSize:18,fontWeight:900,fontFamily:FM,color:evolution>0?RD:GR,marginBottom:4}}>
+                  {evolution>0?"+":""}{evolution.toFixed(1)}%
+                </div>
+                <div style={{fontSize:10,color:T5}}>vs {prevYm?fmtYM(prevYm):"mois précédent"}</div>
+                <div style={{fontSize:10,color:T5,marginTop:2}}>{consoPrec!==null?`Mois précédent : ${f(consoPrec)}`:""}</div>
+              </>
+            ) : (
+              <div style={{fontSize:12,color:T5,marginTop:8}}>Pas assez de données</div>
+            )}
+          </Card>
+
+          {/* Articles à réapprovisionner */}
+          <Card style={{padding:"14px 16px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>À réapprovisionner</div>
+            <div style={{fontSize:18,fontWeight:900,fontFamily:FM,color:aReappro.length>0?RD:GR,marginBottom:4}}>{aReappro.length}</div>
+            {aReappro.length>0
+              ? <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                  {aReappro.slice(0,3).map(a=>(
+                    <div key={a.id} style={{fontSize:10,color:T4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                      • {a.nom} <span style={{color:RD,fontWeight:700}}>({a.qty||0}/{a.seuil})</span>
+                    </div>
+                  ))}
+                  {aReappro.length>3&&<div style={{fontSize:10,color:T5}}>+{aReappro.length-3} autres</div>}
+                </div>
+              : <div style={{fontSize:10,color:GR}}>Tout est bien approvisionné</div>
+            }
+          </Card>
+
+          {/* Stock dormant */}
+          <Card style={{padding:"14px 16px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>Stock dormant</div>
+            <div style={{fontSize:18,fontWeight:900,fontFamily:FM,color:dormant.length>0?"#d97706":GR,marginBottom:4}}>{dormant.length}</div>
+            {dormant.length>0
+              ? <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                  {dormant.slice(0,3).map(a=>(
+                    <div key={a.id} style={{fontSize:10,color:T4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                      • {a.nom} <span style={{color:"#d97706",fontWeight:700}}>({a.qty||0} en stock)</span>
+                    </div>
+                  ))}
+                  {dormant.length>3&&<div style={{fontSize:10,color:T5}}>+{dormant.length-3} autres</div>}
+                </div>
+              : <div style={{fontSize:10,color:GR}}>Tout le stock est actif</div>
+            }
+          </Card>
+        </div>
         {/* Consommation par mois */}
         <Card>
           <div style={{fontSize:12,fontWeight:800,color:T1,marginBottom:16,display:"flex",alignItems:"center",gap:6}}>

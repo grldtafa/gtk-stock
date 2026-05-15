@@ -105,6 +105,7 @@ export default function App() {
   ]);
   const [fournisseurs, setFournisseurs] = useState(["Circet","AzurConnect","Autre"]);
   const [techs,       setTechs]       = useState([]);
+  const [budgetMensuel, setBudgetMensuel] = useState(0);
   const [dataLoaded,  setDataLoaded]  = useState(false);
 
   const [toasts, setToasts] = useState([]);
@@ -139,6 +140,7 @@ export default function App() {
           if (d.bls)          setBls(d.bls);
           if (d.stkInLog)     setStkInLog(d.stkInLog);
           if (d.fournisseurs?.length) setFournisseurs(d.fournisseurs);
+          if (d.budgetMensuel) setBudgetMensuel(d.budgetMensuel);
           if (d.catalogue?.length) {
             const CAT_DEFAULT = [{id:"cat_def_1",nom:"Touret 500m 1FO",cat:"Fibre D3",prix:130},{id:"cat_def_2",nom:"Kit 50m 1FO",cat:"Fibre D3",prix:23.19},{id:"cat_def_3",nom:"Kit 30m 1FO",cat:"Fibre D3",prix:10.48}];
             const merged = [...CAT_DEFAULT.filter(def=>!d.catalogue.find(a=>a.nom.toLowerCase()===def.nom.toLowerCase())), ...d.catalogue];
@@ -184,9 +186,9 @@ export default function App() {
   };
 
   // Ref toujours à jour pour éviter les stale closures dans les callbacks
-  const metaRef = useRef({bls, catalogue, stkInLog, fournisseurs});
-  useEffect(() => { metaRef.current = {bls, catalogue, stkInLog, fournisseurs}; },
-    [bls, catalogue, stkInLog, fournisseurs]);
+  const metaRef = useRef({bls, catalogue, stkInLog, fournisseurs, budgetMensuel});
+  useEffect(() => { metaRef.current = {bls, catalogue, stkInLog, fournisseurs, budgetMensuel}; },
+    [bls, catalogue, stkInLog, fournisseurs, budgetMensuel]);
 
   // overrides permet de passer des valeurs fraîches sans attendre metaRef
   const saveMeta = useCallback(async (overrides = {}) => {
@@ -255,6 +257,8 @@ export default function App() {
             onToast={addToast}
             isAdmin={currentUser.isAdmin}
             currentUser={currentUser}
+            budgetMensuel={budgetMensuel}
+            onSaveBudget={(val)=>{setBudgetMensuel(val);saveMeta({budgetMensuel:val});}}
           />
         </div>
       </div>
