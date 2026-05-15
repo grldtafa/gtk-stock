@@ -2,16 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import emailjs from "@emailjs/browser";
 
 // ─── Alertes stock par email ───
-const ALERT_EMAILS = ["contact@gtkreseaux.fr", "g.michelet@gtkreseaux.fr"];
 const sendStockAlert = async (alertItems, createdBy, dateStr) => {
   const EJS_SVC  = import.meta.env.VITE_EMAILJS_SERVICE_ID;
   const EJS_TPL  = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
   const EJS_KEY  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
   if(!EJS_SVC||!EJS_TPL||!EJS_KEY) return;
   const articles = alertItems.map(a=>`• ${a.nom} : ${a.qty||0} restant${(a.qty||0)>1?"s":""} (seuil : ${a.seuil})`).join("\n");
-  for(const email of ALERT_EMAILS){
-    await emailjs.send(EJS_SVC, EJS_TPL, {to_email:email, articles, createdBy, date:dateStr}, EJS_KEY);
-  }
+  // Un seul envoi — le CC du template EmailJS gère le 2ème destinataire
+  await emailjs.send(EJS_SVC, EJS_TPL, {articles, createdBy, date:dateStr}, EJS_KEY);
 };
 
 // ─── Constantes GTK ───
