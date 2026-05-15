@@ -1136,7 +1136,7 @@ export default function StockSection({
       return acc;
     },{});
     const mKeys=Object.keys(byMonth).sort((a,b)=>a.localeCompare(b)).slice(-6);
-    const maxQty=Math.max(...mKeys.map(k=>byMonth[k].qty),1);
+    const maxVal=Math.max(...mKeys.map(k=>byMonth[k].val),1);
 
     // Top articles
     const byArt=stkOutConso.reduce((acc,s)=>{
@@ -1173,12 +1173,11 @@ export default function StockSection({
             : <div style={{display:"flex",alignItems:"flex-end",gap:isMob?6:10,height:110}}>
                 {mKeys.map(ym=>{
                   const d=byMonth[ym];
-                  const pct=d.qty/maxQty;
+                  const pct=d.val/maxVal;
                   return (
                     <div key={ym} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-                      <div style={{fontSize:10,fontFamily:FM,fontWeight:800,color:O}}>{d.qty}</div>
+                      <div style={{fontSize:9,fontFamily:FM,fontWeight:800,color:O,textAlign:"center",lineHeight:1.2}}>{d.val>0?f(d.val):""}</div>
                       <div style={{width:"100%",background:O,borderRadius:"4px 4px 0 0",minHeight:4,height:Math.max(4,pct*72),transition:"height .3s"}}/>
-                      {d.val>0&&<div style={{fontSize:8,color:T5,fontFamily:FM}}>{f(d.val)}</div>}
                       <div style={{fontSize:9,color:T4,textAlign:"center",fontWeight:600}}>{fmtYM(ym).split(" ")[0]}</div>
                     </div>
                   );
