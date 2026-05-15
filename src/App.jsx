@@ -224,6 +224,7 @@ export default function App() {
           )}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <img src="/LOGO.png" alt="GTK Réseaux" style={{height:30,width:"auto",objectFit:"contain"}}/>
           <div style={{fontSize:12,color:"#64748b",fontWeight:600}}>{currentUser.name}</div>
           <button onClick={()=>{sessionStorage.removeItem("gtk-auth");sessionStorage.removeItem("gtk-user");setLoggedIn(false);}}
             style={{background:"none",border:"1px solid #e4eaf0",borderRadius:6,padding:"5px 12px",fontSize:11,color:"#475569",cursor:"pointer",fontFamily:FF}}>
@@ -252,11 +253,6 @@ export default function App() {
             currentUser={currentUser}
           />
         </div>
-      </div>
-
-      {/* Logo coin haut droit */}
-      <div style={{position:"fixed",top:10,right:230,zIndex:200,pointerEvents:"none"}}>
-        <img src="/LOGO.png" alt="GTK Réseaux" style={{height:36,width:"auto",objectFit:"contain"}}/>
       </div>
 
       {/* Toasts */}
