@@ -7,6 +7,10 @@ import StockSection from "./StockSection.jsx";
 const O  = "#FC7701";
 const FF = "'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
 
+// ─── Version ───
+const APP_VERSION   = "1.5.0";
+const APP_VERSION_DATE = "15/05/2026";
+
 // ─── Comptes utilisateurs ───
 const USERS = [
   { user:"ADMIN",     pass:"Gtkreseaux13.", name:"Kevin",     isAdmin:true },
@@ -253,6 +257,17 @@ export default function App() {
             currentUser={currentUser}
           />
         </div>
+      </div>
+
+      {/* Barre de version */}
+      <div style={{background:"#f8fafc",borderTop:"1px solid #e4eaf0",padding:"6px 24px",display:"flex",alignItems:"center",justifyContent:"center",gap:6,fontFamily:FF,fontSize:11,color:"#94a3b8"}}>
+        <span>Copyright ©</span>
+        <span style={{color:O,fontWeight:700}}>GTK Réseaux</span>
+        <span>{new Date().getFullYear()}</span>
+        <span>·</span>
+        <span>Version :</span>
+        <span style={{color:O,fontWeight:700}}>{APP_VERSION}</span>
+        <span style={{color:"#cbd5e1"}}>({APP_VERSION_DATE})</span>
       </div>
 
       {/* Toasts */}
