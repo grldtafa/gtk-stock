@@ -25,11 +25,10 @@ const FM  = "'SF Mono',SFMono-Regular,Menlo,Consolas,monospace";
 const SH  = "0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04)";
 
 // ─── Types matériel ───
-const TYPES = ["Consommable", "Outillage", "Outils"];
+const TYPES = ["Consommable", "Outillage"];
 const TYPE_STYLE = {
-  Consommable: { bg: BLL,     c: BL  },
-  Outillage:   { bg: PUL,     c: PU  },
-  Outils:      { bg: "#fef9c3", c: "#854d0e" },
+  Consommable: { bg: BLL, c: BL },
+  Outillage:   { bg: PUL, c: PU },
 };
 
 const f       = v => Number(v||0).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
@@ -153,7 +152,7 @@ export default function StockSection({
     setStk(ns); onSaveStock(ns); setEditQty(null); onToast("Quantité mise à jour");
   };
 
-  const TYPE_TABS = ["Tous", "Consommable", "Outillage", "Outils"];
+  const TYPE_TABS = ["Tous", "Consommable", "Outillage"];
 
   const renderInventaire = () => (
     <div>
@@ -583,8 +582,8 @@ export default function StockSection({
           {catalogue.length===0
             ? <Card style={{textAlign:"center",padding:"32px",color:T4,fontSize:13}}>Ajoutez des articles dans le Catalogue d'abord</Card>
             : (()=>{
-                const ORDER=["Fibre D3","Fibre D2","ADSL"];
-                const CAT_COLOR={"Fibre D3":"#0ea5e9","Fibre D2":"#8b5cf6","ADSL":"#16a34a"};
+                const ORDER=["Fibre D3","Fibre D2","ADSL","Outils"];
+                const CAT_COLOR={"Fibre D3":"#0ea5e9","Fibre D2":"#8b5cf6","ADSL":"#16a34a","Outils":"#d97706"};
                 const filtered=catalogue.filter(c=>!blCatSearch||c.nom.toLowerCase().includes(blCatSearch.toLowerCase())||c.cat?.toLowerCase().includes(blCatSearch.toLowerCase()));
                 const groups={};
                 filtered.forEach(c=>{const k=c.cat||"Autre";if(!groups[k])groups[k]=[];groups[k].push(c);});
@@ -1353,6 +1352,7 @@ export default function StockSection({
                   <option value="Fibre D3">Fibre D3</option>
                   <option value="Fibre D2">Fibre D2</option>
                   <option value="ADSL">ADSL</option>
+                  <option value="Outils">Outils</option>
                 </select>
               </div>
             </div>
