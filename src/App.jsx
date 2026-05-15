@@ -214,10 +214,10 @@ export default function App() {
   const T1="#0f172a",T2="#1e293b",T3="#475569",BG="#f0f4f8";
 
   return (
-    <div style={{minHeight:"100vh",background:BG,fontFamily:FF}}>
+    <div style={{height:"100vh",overflow:"hidden",background:BG,fontFamily:FF,display:"flex",flexDirection:"column"}}>
       {/* Header */}
-      <div style={{background:"#fff",borderBottom:"1px solid #e4eaf0",padding:"0 24px",height:56,
-        display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
+      <div style={{background:"#fff",borderBottom:"1px solid #e4eaf0",padding:"0 24px",height:56,flexShrink:0,
+        display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:100}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:32,height:32,borderRadius:8,background:O,display:"flex",alignItems:"center",justifyContent:"center"}}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
@@ -238,7 +238,7 @@ export default function App() {
       </div>
 
       {/* Content */}
-      <div style={{maxWidth:1200,margin:"0 auto",padding:"20px 16px",height:"calc(100vh - 56px)",display:"flex",flexDirection:"column"}}>
+      <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column",padding:"20px 16px",maxWidth:1200,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
         <div style={{flex:1,borderRadius:12,overflow:"hidden",border:"1px solid #e4eaf0",boxShadow:"0 1px 3px rgba(0,0,0,.06)"}}>
           <StockSection
             stk={stk}              setStk={setStk}
@@ -260,7 +260,7 @@ export default function App() {
       </div>
 
       {/* Barre de version */}
-      <div style={{background:"#f8fafc",borderTop:"1px solid #e4eaf0",padding:"6px 24px",display:"flex",alignItems:"center",justifyContent:"center",gap:6,fontFamily:FF,fontSize:11,color:"#94a3b8"}}>
+      <div style={{flexShrink:0,background:"#f8fafc",borderTop:"1px solid #e4eaf0",padding:"5px 24px",display:"flex",alignItems:"center",justifyContent:"center",gap:6,fontFamily:FF,fontSize:11,color:"#94a3b8"}}>
         <span>Copyright ©</span>
         <span style={{color:O,fontWeight:700}}>GTK Réseaux</span>
         <span>{new Date().getFullYear()}</span>
