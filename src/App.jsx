@@ -255,7 +255,7 @@ export default function App() {
       </div>
 
       {/* Logo coin haut droit */}
-      <div style={{position:"fixed",top:10,right:120,zIndex:200,pointerEvents:"none"}}>
+      <div style={{position:"fixed",top:10,right:230,zIndex:200,pointerEvents:"none"}}>
         <img src="/LOGO.png" alt="GTK Réseaux" style={{height:36,width:"auto",objectFit:"contain"}}/>
       </div>
 
