@@ -1274,6 +1274,15 @@ export default function StockSection({
                     </div>
                   ))}
                   {aReappro.length>3&&<div style={{fontSize:10,color:T5}}>+{aReappro.length-3} autres</div>}
+                  <button onClick={()=>{
+                    const now=new Date();
+                    const dateStr=now.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"})+" "+now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+                    sendStockAlert(aReappro, currentUser?.name||"Test", dateStr)
+                      .then(()=>onToast("📧 Email d'alerte envoyé !"))
+                      .catch(e=>{onToast("Erreur envoi email","err");console.error(e);});
+                  }} style={{marginTop:6,background:RDL,border:`1px solid ${RD}40`,borderRadius:6,padding:"4px 8px",fontSize:10,color:RD,fontWeight:700,cursor:"pointer",width:"100%"}}>
+                    📧 Envoyer l'alerte maintenant
+                  </button>
                 </div>
               : <div style={{fontSize:10,color:GR}}>Tout est bien approvisionné</div>
             }
