@@ -152,38 +152,6 @@ export default function StockSection({
     setStk(ns); onSaveStock(ns); setEditQty(null); onToast("Quantité mise à jour");
   };
 
-  // Recalcule le stock exactement depuis les BR et les sorties
-  const recalcStockFromBRs = () => {
-    if(!window.confirm("Recalculer l'inventaire depuis les bons de réception et les sorties ?\nLes quantités actuelles seront remplacées par le calcul exact.")) return;
-    // Construire un map nom → qty depuis les BR
-    const fromBRs = {};
-    bls.forEach(bl=>{
-      (bl.lignes||[]).forEach(l=>{
-        fromBRs[l.nom] = (fromBRs[l.nom]||0) + (l.qty||0);
-      });
-    });
-    // Soustraire les sorties
-    stkOut.forEach(s=>{
-      if(fromBRs[s.nom]!==undefined){
-        fromBRs[s.nom] = Math.max(0, (fromBRs[s.nom]||0) - (s.qty||0));
-      }
-    });
-    // Mettre à jour le stock en conservant les métadonnées (prix, seuil, type…)
-    const ns = stk.map(a=>({
-      ...a,
-      qty: fromBRs[a.nom]!==undefined ? fromBRs[a.nom] : 0
-    }));
-    // Ajouter les articles dans les BR mais pas encore dans stk
-    Object.entries(fromBRs).forEach(([nom,qty])=>{
-      if(!ns.find(a=>a.nom===nom)){
-        const blLine = bls.flatMap(b=>b.lignes||[]).find(l=>l.nom===nom);
-        ns.push({id:Date.now()+Math.random(),nom,cat:blLine?.cat||"",type:blLine?.type||"",prix:blLine?.prix||0,qty,seuil:0});
-      }
-    });
-    setStk(ns); onSaveStock(ns);
-    onToast(`Inventaire recalculé · ${ns.length} article${ns.length!==1?"s":""} mis à jour ✓`);
-  };
-
   const TYPE_TABS = ["Tous", "Consommable", "Outillage"];
 
   const renderInventaire = () => (
@@ -253,11 +221,6 @@ export default function StockSection({
             {key:"qty",label:"Quantité"},{key:"seuil",label:"Seuil"},{key:"prix",label:"Prix unit."}
           ],"inventaire")}>
             {Ico.csv}{!isMob&&"CSV"}
-          </Btn>
-        )}
-        {isAdmin && bls.length>0 && (
-          <Btn small outline color={RD} onClick={recalcStockFromBRs} title="Recalculer les quantités depuis les BR et les sorties">
-            {Ico.refresh}{!isMob&&"Recalculer"}
           </Btn>
         )}
       </div>
