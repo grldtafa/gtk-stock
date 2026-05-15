@@ -25,10 +25,11 @@ const FM  = "'SF Mono',SFMono-Regular,Menlo,Consolas,monospace";
 const SH  = "0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04)";
 
 // ─── Types matériel ───
-const TYPES = ["Consommable", "Outillage"];
+const TYPES = ["Consommable", "Outillage", "Outils"];
 const TYPE_STYLE = {
-  Consommable: { bg: BLL, c: BL },
-  Outillage:   { bg: PUL, c: PU },
+  Consommable: { bg: BLL,     c: BL  },
+  Outillage:   { bg: PUL,     c: PU  },
+  Outils:      { bg: "#fef9c3", c: "#854d0e" },
 };
 
 const f       = v => Number(v||0).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
@@ -152,7 +153,7 @@ export default function StockSection({
     setStk(ns); onSaveStock(ns); setEditQty(null); onToast("Quantité mise à jour");
   };
 
-  const TYPE_TABS = ["Tous", "Consommable", "Outillage"];
+  const TYPE_TABS = ["Tous", "Consommable", "Outillage", "Outils"];
 
   const renderInventaire = () => (
     <div>
