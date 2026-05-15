@@ -321,9 +321,12 @@ export default function StockSection({
       }
     });
     setStk(ns); onSaveStock(ns);
-    setStkInLog(prev=>[...blLignes.map(l=>({id:Math.floor(Math.random()*2e9),nom:l.nom,cat:l.cat,qty:l.qty,prix:l.prix,dateLabel:fmtDate(d).slice(0,5),ym:d.slice(0,7),bl:num})),...prev]);
-    setBls(prev=>[newBl,...prev]);
-    setTimeout(()=>onSaveMeta&&onSaveMeta(),300);
+    // Valeurs directes passées à onSaveMeta (pas de setTimeout/metaRef)
+    const newStkInLog = [...blLignes.map(l=>({id:Math.floor(Math.random()*2e9),nom:l.nom,cat:l.cat,qty:l.qty,prix:l.prix,dateLabel:fmtDate(d).slice(0,5),ym:d.slice(0,7),bl:num})), ...stkInLog];
+    const newBls = [newBl, ...bls];
+    setStkInLog(newStkInLog);
+    setBls(newBls);
+    onSaveMeta&&onSaveMeta({bls: newBls, stkInLog: newStkInLog});
     setBlMode("liste"); setBlLignes([]); setBlDate(new Date().toISOString().slice(0,10));
     onToast(`Bon ${num} validé · Stock mis à jour ✓`);
   };
@@ -339,17 +342,14 @@ export default function StockSection({
   const saveBlLine = (bl, idx) => {
     const newQty = Math.max(1, parseInt(blEditLineQty)||1);
     const oldQty = bl.lignes[idx].qty;
-    const delta  = newQty - oldQty;
+    const delta  = newQty - oldQty; // positif = plus reçu → stock augmente
     const nom    = bl.lignes[idx].nom;
-    if(delta > 0) {
-      const art = stk.find(a=>a.nom===nom);
-      if(!art||(art.qty||0)<delta){ onToast(`Stock insuffisant pour ${nom}`,"warn"); return; }
-    }
-    const ns = stk.map(a=>a.nom===nom?{...a,qty:Math.max(0,(a.qty||0)-delta)}:a);
+    // BR = réception de marchandises : delta positif → on ajoute au stock
+    const ns = stk.map(a=>a.nom===nom?{...a,qty:Math.max(0,(a.qty||0)+delta)}:a);
     setStk(ns); onSaveStock(ns);
     const newBls = bls.map(b=>b.id===bl.id?{...b,lignes:b.lignes.map((l,i)=>i===idx?{...l,qty:newQty}:l)}:b);
     setBls(newBls);
-    setTimeout(()=>onSaveMeta&&onSaveMeta(),300);
+    onSaveMeta&&onSaveMeta({bls: newBls});
     cancelBlEditLine();
     onToast("Ligne mise à jour ✓");
   };
@@ -357,12 +357,13 @@ export default function StockSection({
   const deleteBlLine = (bl, idx) => {
     if(!window.confirm(`Retirer "${bl.lignes[idx].nom}" de ce bon ?`)) return;
     const l = bl.lignes[idx];
+    // Retirer la ligne = annuler la réception → soustraire du stock
     const ns = stk.map(a=>a.nom===l.nom?{...a,qty:Math.max(0,(a.qty||0)-l.qty)}:a);
     setStk(ns); onSaveStock(ns);
     const newLignes = bl.lignes.filter((_,i)=>i!==idx);
     const newBls = bls.map(b=>b.id===bl.id?{...b,lignes:newLignes}:b);
     setBls(newBls);
-    setTimeout(()=>onSaveMeta&&onSaveMeta(),300);
+    onSaveMeta&&onSaveMeta({bls: newBls});
     onToast(`${l.nom} retiré · stock restauré`);
   };
 
