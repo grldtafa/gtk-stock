@@ -1324,7 +1324,12 @@ export default function StockSection({
     const seuil=parseInt(catSeuil)||0;
     const entry={nom:catNom.trim(),cat:catCat.trim(),type:catType,prix,seuil,photo:catPhoto||""};
     const nc=catForm?.id?catalogue.map(c=>c.id===catForm.id?{...c,...entry}:c):[...catalogue,{id:Date.now(),...entry}];
-    setCatalogue(nc);setTimeout(()=>onSaveMeta&&onSaveMeta(),300);setCatForm(null);onToast("Catalogue mis à jour");
+    setCatalogue(nc);
+    // Sync seuil et type vers l'inventaire pour l'article modifié
+    const ns=stk.map(a=>a.nom===entry.nom?{...a,seuil,type:entry.type||a.type}:a);
+    setStk(ns); onSaveStock&&onSaveStock(ns);
+    onSaveMeta&&onSaveMeta({catalogue:nc});
+    setCatForm(null);onToast("Catalogue mis à jour");
   };
   const deleteCat = id => {
     if(!window.confirm("Supprimer cet article du catalogue ?")) return;
