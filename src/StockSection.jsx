@@ -1124,8 +1124,11 @@ export default function StockSection({
   // STATS
   // ════════════════════════════════════════════════════════
   const renderStats = () => {
+    // Uniquement les consommables dans les stats
+    const stkOutConso = stkOut.filter(s=>s.type==="Consommable");
+
     // Par mois (6 derniers)
-    const byMonth = stkOut.reduce((acc,s)=>{
+    const byMonth = stkOutConso.reduce((acc,s)=>{
       const k=s.ym||s.date?.slice(0,7)||"?";
       if(!acc[k]) acc[k]={qty:0,val:0};
       acc[k].qty+=(s.qty||0);
@@ -1136,7 +1139,7 @@ export default function StockSection({
     const maxQty=Math.max(...mKeys.map(k=>byMonth[k].qty),1);
 
     // Top articles
-    const byArt=stkOut.reduce((acc,s)=>{
+    const byArt=stkOutConso.reduce((acc,s)=>{
       if(!acc[s.nom]) acc[s.nom]={qty:0,val:0,nom:s.nom};
       acc[s.nom].qty+=(s.qty||0);
       acc[s.nom].val+=(s.qty||0)*(s.prix||0);
@@ -1146,7 +1149,7 @@ export default function StockSection({
     const maxArt=Math.max(...topArts.map(a=>a.qty),1);
 
     // Par tech
-    const byTech=stkOut.reduce((acc,s)=>{
+    const byTech=stkOutConso.reduce((acc,s)=>{
       const k=s.techId||s.techNom||"?";
       if(!acc[k]) acc[k]={qty:0,val:0,techId:s.techId,techNom:s.techNom};
       acc[k].qty+=(s.qty||0);
@@ -1163,7 +1166,7 @@ export default function StockSection({
         {/* Consommation par mois */}
         <Card>
           <div style={{fontSize:12,fontWeight:800,color:T1,marginBottom:16,display:"flex",alignItems:"center",gap:6}}>
-            {Ico.stats} Consommation mensuelle
+            {Ico.stats} Consommation mensuelle <span style={{fontSize:10,color:T5,fontWeight:500,marginLeft:4}}>· Consommables uniquement</span>
           </div>
           {stkOut.length===0
             ? <div style={{textAlign:"center",color:T5,fontSize:12,padding:"20px 0"}}>Aucune sortie enregistrée</div>
