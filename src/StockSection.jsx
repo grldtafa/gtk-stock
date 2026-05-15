@@ -1325,11 +1325,29 @@ export default function StockSection({
     const entry={nom:catNom.trim(),cat:catCat.trim(),type:catType,prix,seuil,photo:catPhoto||""};
     const nc=catForm?.id?catalogue.map(c=>c.id===catForm.id?{...c,...entry}:c):[...catalogue,{id:Date.now(),...entry}];
     setCatalogue(nc);
-    // Sync seuil et type vers l'inventaire pour l'article modifié
-    const ns=stk.map(a=>a.nom===entry.nom?{...a,seuil,type:entry.type||a.type}:a);
+    // Sync TOUS les champs catalogue → inventaire + BRs + sorties (gère aussi le renommage)
+    const oldNom=catForm?.nom||"";
+    const syncLine = l => {
+      const match = l.nom===entry.nom || (oldNom && l.nom===oldNom);
+      if(!match) return l;
+      return {...l, nom:entry.nom, cat:entry.cat||l.cat, type:entry.type||l.type, prix:prix||l.prix};
+    };
+    // Inventaire
+    const ns=stk.map(a=>{
+      const match = a.nom===entry.nom || (oldNom && a.nom===oldNom);
+      if(!match) return a;
+      return {...a, nom:entry.nom, cat:entry.cat||a.cat, type:entry.type||a.type, prix:prix||a.prix, seuil};
+    });
     setStk(ns); onSaveStock&&onSaveStock(ns);
-    onSaveMeta&&onSaveMeta({catalogue:nc});
-    setCatForm(null);onToast("Catalogue mis à jour");
+    // BRs
+    const newBls=bls.map(b=>({...b,lignes:(b.lignes||[]).map(syncLine)}));
+    setBls(newBls);
+    // Sorties
+    const newStkOut=stkOut.map(s=>syncLine(s));
+    setStkOut(newStkOut);
+    onSaveStkOut&&onSaveStkOut(newStkOut);
+    onSaveMeta&&onSaveMeta({catalogue:nc, bls:newBls});
+    setCatForm(null); onToast("Catalogue mis à jour");
   };
   const deleteCat = id => {
     if(!window.confirm("Supprimer cet article du catalogue ?")) return;
