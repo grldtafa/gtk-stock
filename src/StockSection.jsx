@@ -1632,7 +1632,7 @@ export default function StockSection({
   const [techPrenom,  setTechPrenom]  = useState("");
   const [techNom,     setTechNom]     = useState("");
   const [techPhoto,   setTechPhoto]   = useState("");
-  const [techsFilter, setTechsFilter] = useState(""); // "" = tout, sinon ym "2026-05"
+  const [techsFilter, setTechsFilter] = useState(new Date().toISOString().slice(0,7)); // mois courant par défaut
 
   // Compatibilité ancien format {n} → {prenom, nom}
   const techFullName = t => t.prenom||t.nom ? `${t.prenom||""} ${t.nom||""}`.trim() : (t.n||"");
@@ -1703,10 +1703,6 @@ export default function StockSection({
       {availMonths.length>0&&(
         <div style={{overflowX:"auto",marginBottom:14,paddingBottom:2,WebkitOverflowScrolling:"touch"}}>
           <div style={{display:"flex",gap:6,minWidth:"max-content",paddingRight:4}}>
-            <button onClick={()=>setTechsFilter("")}
-              style={{...pillBase,background:techsFilter===""?O:C2,color:techsFilter===""?"#fff":T3}}>
-              Tout
-            </button>
             {availMonths.map(ym=>(
               <button key={ym} onClick={()=>setTechsFilter(ym)}
                 style={{...pillBase,background:techsFilter===ym?O:C2,color:techsFilter===ym?"#fff":T3}}>
@@ -1758,8 +1754,8 @@ export default function StockSection({
           </Card>
         : <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {[...techs].sort((a,b)=>techFullName(a).localeCompare(techFullName(b),"fr")).map(t=>{
-              // Filtre par mois si sélectionné
-              const sorties=stkOut.filter(s=>s.techId===t.id&&(!techsFilter||(s.ym||s.date?.slice(0,7))===techsFilter));
+              // Filtre par mois sélectionné (toujours actif)
+              const sorties=stkOut.filter(s=>s.techId===t.id&&(s.ym||s.date?.slice(0,7))===techsFilter);
               const totalVal=sorties.reduce((s,x)=>s+(x.qty||0)*(x.prix||0),0);
               const totalQty=sorties.reduce((s,x)=>s+(x.qty||0),0);
 
