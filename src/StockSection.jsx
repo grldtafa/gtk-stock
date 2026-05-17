@@ -1232,7 +1232,7 @@ export default function StockSection({
         <div style={{display:"grid",gridTemplateColumns:isMob?"1fr 1fr":"repeat(4,1fr)",gap:10}}>
 
           {/* Budget mensuel */}
-          <Card style={{padding:"14px 16px"}}>
+          <Card style={{padding:isMob?"10px 12px":"14px 16px"}}>
             <div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>Budget mensuel</div>
             {budgetEdit ? (
               <div style={{display:"flex",gap:6,alignItems:"center"}}>
@@ -1248,9 +1248,9 @@ export default function StockSection({
               </div>
             ) : (
               <>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
-                  <span style={{fontSize:18,fontWeight:900,fontFamily:FM,color:budgetMensuel>0?budgetColor:T1}}>{f(consoMois)}</span>
-                  {budgetMensuel>0&&<span style={{fontSize:10,color:T5}}>/ {f(budgetMensuel)}</span>}
+                <div style={{marginBottom:4}}>
+                  <span style={{fontSize:isMob?14:18,fontWeight:900,fontFamily:FM,color:budgetMensuel>0?budgetColor:T1}}>{f(consoMois)}</span>
+                  {budgetMensuel>0&&<div style={{fontSize:10,color:T5,marginTop:1}}>/ {f(budgetMensuel)}</div>}
                 </div>
                 {budgetMensuel>0&&(
                   <div style={{height:5,background:C2,borderRadius:3,marginBottom:6}}>
@@ -1259,59 +1259,59 @@ export default function StockSection({
                 )}
                 <button onClick={()=>{setBudgetInput(budgetMensuel||"");setBudgetEdit(true);}}
                   style={{background:"none",border:`1px solid ${C2}`,borderRadius:5,padding:"3px 8px",fontSize:10,color:T4,cursor:"pointer",width:"100%"}}>
-                  {budgetMensuel>0?"Modifier l'objectif":"Définir un objectif"}
+                  {budgetMensuel>0?(isMob?"Modifier":"Modifier l'objectif"):"Définir un objectif"}
                 </button>
               </>
             )}
           </Card>
 
           {/* Évolution mois/mois */}
-          <Card style={{padding:"14px 16px"}}>
+          <Card style={{padding:isMob?"10px 12px":"14px 16px"}}>
             <div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>Évolution</div>
             {evolution!==null ? (
               <>
-                <div style={{fontSize:18,fontWeight:900,fontFamily:FM,color:evolution>0?RD:GR,marginBottom:4}}>
+                <div style={{fontSize:isMob?14:18,fontWeight:900,fontFamily:FM,color:evolution>0?RD:GR,marginBottom:4}}>
                   {evolution>0?"+":""}{evolution.toFixed(1)}%
                 </div>
-                <div style={{fontSize:10,color:T5}}>vs {prevYm?fmtYM(prevYm):"mois précédent"}</div>
-                <div style={{fontSize:10,color:T5,marginTop:2}}>{consoPrec!==null?`Mois précédent : ${f(consoPrec)}`:""}</div>
+                <div style={{fontSize:10,color:T5}}>vs {prevYm?fmtYM(prevYm):"mois préc."}</div>
+                <div style={{fontSize:10,color:T5,marginTop:2}}>{consoPrec!==null?`Préc. : ${f(consoPrec)}`:""}</div>
               </>
             ) : (
-              <div style={{fontSize:12,color:T5,marginTop:8}}>Pas assez de données</div>
+              <div style={{fontSize:11,color:T5,marginTop:8}}>Pas assez de données</div>
             )}
           </Card>
 
           {/* Articles à réapprovisionner */}
-          <Card style={{padding:"14px 16px"}}>
-            <div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>À réapprovisionner</div>
-            <div style={{fontSize:18,fontWeight:900,fontFamily:FM,color:aReappro.length>0?RD:GR,marginBottom:4}}>{aReappro.length}</div>
+          <Card style={{padding:isMob?"10px 12px":"14px 16px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>À réapprov.</div>
+            <div style={{fontSize:isMob?14:18,fontWeight:900,fontFamily:FM,color:aReappro.length>0?RD:GR,marginBottom:4}}>{aReappro.length}</div>
             {aReappro.length>0
               ? <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                  {aReappro.slice(0,3).map(a=>(
-                    <div key={a.id} style={{fontSize:10,color:T4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                  {aReappro.slice(0,isMob?2:3).map(a=>(
+                    <div key={a.id} style={{fontSize:10,color:T4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       • {a.nom} <span style={{color:RD,fontWeight:700}}>({a.qty||0}/{a.seuil})</span>
                     </div>
                   ))}
-                  {aReappro.length>3&&<div style={{fontSize:10,color:T5}}>+{aReappro.length-3} autres</div>}
+                  {aReappro.length>(isMob?2:3)&&<div style={{fontSize:10,color:T5}}>+{aReappro.length-(isMob?2:3)} autres</div>}
                 </div>
-              : <div style={{fontSize:10,color:GR}}>Tout est bien approvisionné</div>
+              : <div style={{fontSize:10,color:GR}}>Tout OK</div>
             }
           </Card>
 
           {/* Stock dormant */}
-          <Card style={{padding:"14px 16px"}}>
+          <Card style={{padding:isMob?"10px 12px":"14px 16px"}}>
             <div style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>Stock dormant</div>
-            <div style={{fontSize:18,fontWeight:900,fontFamily:FM,color:dormant.length>0?"#d97706":GR,marginBottom:4}}>{dormant.length}</div>
+            <div style={{fontSize:isMob?14:18,fontWeight:900,fontFamily:FM,color:dormant.length>0?"#d97706":GR,marginBottom:4}}>{dormant.length}</div>
             {dormant.length>0
               ? <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                  {dormant.slice(0,3).map(a=>(
-                    <div key={a.id} style={{fontSize:10,color:T4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                      • {a.nom} <span style={{color:"#d97706",fontWeight:700}}>({a.qty||0} en stock)</span>
+                  {dormant.slice(0,isMob?2:3).map(a=>(
+                    <div key={a.id} style={{fontSize:10,color:T4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      • {a.nom} <span style={{color:"#d97706",fontWeight:700}}>({a.qty||0})</span>
                     </div>
                   ))}
-                  {dormant.length>3&&<div style={{fontSize:10,color:T5}}>+{dormant.length-3} autres</div>}
+                  {dormant.length>(isMob?2:3)&&<div style={{fontSize:10,color:T5}}>+{dormant.length-(isMob?2:3)} autres</div>}
                 </div>
-              : <div style={{fontSize:10,color:GR}}>Tout le stock est actif</div>
+              : <div style={{fontSize:10,color:GR}}>Tout actif</div>
             }
           </Card>
         </div>
@@ -1322,15 +1322,17 @@ export default function StockSection({
           </div>
           {stkOut.length===0
             ? <div style={{textAlign:"center",color:T5,fontSize:12,padding:"20px 0"}}>Aucune sortie enregistrée</div>
-            : <div style={{display:"flex",alignItems:"flex-end",gap:isMob?6:10,height:110}}>
+            : <div style={{display:"flex",alignItems:"flex-end",gap:isMob?4:10,height:isMob?90:110}}>
                 {mKeys.map(ym=>{
                   const d=byMonth[ym];
                   const pct=d.val/maxVal;
+                  // Label court sur mobile : "234€" au lieu de "1 234,50 €"
+                  const label = d.val>0 ? (isMob ? `${Math.round(d.val)}€` : f(d.val)) : "";
                   return (
-                    <div key={ym} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-                      <div style={{fontSize:9,fontFamily:FM,fontWeight:800,color:O,textAlign:"center",lineHeight:1.2}}>{d.val>0?f(d.val):""}</div>
-                      <div style={{width:"100%",background:O,borderRadius:"4px 4px 0 0",minHeight:4,height:Math.max(4,pct*72),transition:"height .3s"}}/>
-                      <div style={{fontSize:9,color:T4,textAlign:"center",fontWeight:600}}>{fmtYM(ym).split(" ")[0]}</div>
+                    <div key={ym} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:0}}>
+                      <div style={{fontSize:8,fontFamily:FM,fontWeight:800,color:O,textAlign:"center",lineHeight:1.2,overflow:"hidden",width:"100%",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{label}</div>
+                      <div style={{width:"100%",background:O,borderRadius:"4px 4px 0 0",minHeight:4,height:Math.max(4,pct*(isMob?60:72)),transition:"height .3s"}}/>
+                      <div style={{fontSize:isMob?8:9,color:T4,textAlign:"center",fontWeight:600,whiteSpace:"nowrap"}}>{fmtYM(ym).split(" ")[0]}</div>
                     </div>
                   );
                 })}
@@ -1350,15 +1352,15 @@ export default function StockSection({
                   const catItem=catalogue.find(c=>c.nom===a.nom);
                   return (
                     <div key={a.nom}>
-                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4,gap:8}}>
-                        <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4,gap:6,flexWrap:"wrap"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
                           {catItem?.photo
-                            ? <img src={catItem.photo} alt={a.nom} style={{width:24,height:24,borderRadius:4,objectFit:"cover",flexShrink:0}}/>
+                            ? <img src={catItem.photo} alt={a.nom} style={{width:22,height:22,borderRadius:4,objectFit:"cover",flexShrink:0}}/>
                             : <div style={{width:8,height:8,borderRadius:2,flexShrink:0,background:barColors[i%barColors.length]}}/>
                           }
-                          <span style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{a.nom}</span>
+                          <span style={{fontSize:isMob?11:12,fontWeight:600,color:T1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.nom}</span>
                         </div>
-                        <span style={{fontSize:11,fontFamily:FM,fontWeight:800,color:barColors[i%barColors.length],flexShrink:0}}>{a.qty} pcs</span>
+                        <span style={{fontSize:isMob?10:11,fontFamily:FM,fontWeight:800,color:barColors[i%barColors.length],flexShrink:0}}>{a.qty} pcs</span>
                       </div>
                       <div style={{height:6,background:C2,borderRadius:3}}>
                         <div style={{height:"100%",background:barColors[i%barColors.length],borderRadius:3,width:`${(a.qty/maxArt)*100}%`,transition:"width .4s"}}/>
@@ -1383,12 +1385,12 @@ export default function StockSection({
                   return (
                     <div key={t.techId||i} style={{display:"flex",alignItems:"center",gap:10}}>
                       {tech
-                        ? <TechAvatar t={tech} size={34}/>
-                        : <div style={{width:34,height:34,borderRadius:17,background:C3,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:11,fontWeight:700,color:T4}}>?</div>}
+                        ? <TechAvatar t={tech} size={isMob?28:34}/>
+                        : <div style={{width:isMob?28:34,height:isMob?28:34,borderRadius:17,background:C3,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:11,fontWeight:700,color:T4}}>?</div>}
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                          <span style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.techNom||"Inconnu"}</span>
-                          <span style={{fontSize:12,fontFamily:FM,fontWeight:800,color:PU,flexShrink:0,marginLeft:8}}>{f(t.val)}</span>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4,gap:4,flexWrap:"wrap"}}>
+                          <span style={{fontSize:12,fontWeight:600,color:T1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>{t.techNom||"Inconnu"}</span>
+                          <span style={{fontSize:isMob?11:12,fontFamily:FM,fontWeight:800,color:PU,flexShrink:0}}>{f(t.val)}</span>
                         </div>
                         <div style={{height:6,background:C2,borderRadius:3}}>
                           <div style={{height:"100%",background:PU,borderRadius:3,width:`${(t.val/maxTech)*100}%`,transition:"width .4s"}}/>
