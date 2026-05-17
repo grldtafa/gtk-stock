@@ -1785,38 +1785,40 @@ export default function StockSection({
               const topArts=Object.values(byArt).sort((a,b)=>b.qty-a.qty).slice(0,3);
 
               return (
-              <Card key={t.id} style={{padding:"14px 16px"}}>
+              <Card key={t.id} style={{padding:"12px 16px"}}>
                 <div style={{display:"flex",alignItems:"center",gap:14}}>
-                  <TechAvatar t={t} size={isMob?42:52}/>
+                  <TechAvatar t={t} size={isMob?38:46}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:isMob?13:14,fontWeight:700,color:T1}}>{techFullName(t)}</div>
-                    <div style={{display:"flex",gap:8,marginTop:3,flexWrap:"wrap",alignItems:"center"}}>
-                      {sorties.length===0
-                        ? <span style={{fontSize:11,color:T5,fontStyle:"italic"}}>{techsFilter?"Aucune sortie ce mois":"Aucune sortie"}</span>
-                        : <>
-                            <span style={{fontSize:11,color:T4}}>{sorties.length} sortie{sorties.length!==1?"s":""}</span>
-                            {totalQty>0&&<span style={{fontSize:11,color:T4}}>· {totalQty} art.</span>}
-                            {totalVal>0&&<span style={{fontSize:11,fontWeight:700,color:O}}>· {f(totalVal)}</span>}
-                            {evol!==null&&(
-                              <span style={{fontSize:10,fontWeight:700,color:evol>0?RD:GR,background:evol>0?RDL:GRL,borderRadius:10,padding:"1px 6px"}}>
-                                {evol>0?"+":""}{evol.toFixed(0)}% vs mois préc.
-                              </span>
-                            )}
-                          </>
-                      }
-                    </div>
+                    {techsFilter&&(
+                      <div style={{display:"flex",gap:8,marginTop:3,flexWrap:"wrap",alignItems:"center"}}>
+                        {sorties.length===0
+                          ? <span style={{fontSize:11,color:T5,fontStyle:"italic"}}>Aucune sortie ce mois</span>
+                          : <>
+                              <span style={{fontSize:11,color:T4}}>{sorties.length} sortie{sorties.length!==1?"s":""}</span>
+                              {totalQty>0&&<span style={{fontSize:11,color:T4}}>· {totalQty} art.</span>}
+                              {totalVal>0&&<span style={{fontSize:11,fontWeight:700,color:O}}>· {f(totalVal)}</span>}
+                              {evol!==null&&(
+                                <span style={{fontSize:10,fontWeight:700,color:evol>0?RD:GR,background:evol>0?RDL:GRL,borderRadius:10,padding:"1px 6px"}}>
+                                  {evol>0?"+":""}{evol.toFixed(0)}% vs mois préc.
+                                </span>
+                              )}
+                            </>
+                        }
+                      </div>
+                    )}
                   </div>
                   {isAdmin&&(
                     <div style={{display:"flex",gap:4,flexShrink:0}}>
-                      <button onClick={()=>openTechForm(t)} style={{background:C3,border:`1px solid ${C2}`,borderRadius:6,width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:T3}}>{Ico.edit}</button>
-                      <button onClick={()=>deleteTech(t.id)} style={{background:RDL,border:`1px solid ${RD}30`,borderRadius:6,width:32,height:32,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:RD}}>{Ico.trash}</button>
+                      <button onClick={()=>openTechForm(t)} style={{background:C3,border:`1px solid ${C2}`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:T3}}>{Ico.edit}</button>
+                      <button onClick={()=>deleteTech(t.id)} style={{background:RDL,border:`1px solid ${RD}30`,borderRadius:6,width:30,height:30,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:RD}}>{Ico.trash}</button>
                     </div>
                   )}
                 </div>
-                {topArts.length>0&&(
+                {techsFilter&&topArts.length>0&&(
                   <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C2}`,display:"flex",flexDirection:"column",gap:6}}>
                     <div style={{fontSize:9,fontWeight:700,color:T5,textTransform:"uppercase",letterSpacing:.8,marginBottom:2}}>
-                      {techsFilter?`Articles — ${fmtYM(techsFilter)}`:"Articles consommés (total)"}
+                      Articles — {fmtYM(techsFilter)}
                     </div>
                     {topArts.map(a=>{
                       const maxQ=topArts[0].qty||1;
