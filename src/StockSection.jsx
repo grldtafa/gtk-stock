@@ -379,16 +379,20 @@ export default function StockSection({
   };
 
   const deleteBlLine = (bl, idx) => {
-    if(!window.confirm(`Retirer "${bl.lignes[idx].nom}" de ce bon ?`)) return;
-    const l = bl.lignes[idx];
-    // Retirer la ligne = annuler la réception → soustraire du stock
-    const ns = stk.map(a=>a.nom===l.nom?{...a,qty:Math.max(0,(a.qty||0)-l.qty)}:a);
-    setStk(ns); onSaveStock(ns);
-    const newLignes = bl.lignes.filter((_,i)=>i!==idx);
-    const newBls = bls.map(b=>b.id===bl.id?{...b,lignes:newLignes}:b);
-    setBls(newBls);
-    onSaveMeta&&onSaveMeta({bls: newBls});
-    onToast(`${l.nom} retiré · stock restauré`);
+    askConfirm(
+      "Retirer cet article ?",
+      `"${bl.lignes[idx].nom}" sera retiré du bon ${bl.num} et le stock sera mis à jour.`,
+      () => {
+        const l = bl.lignes[idx];
+        const ns = stk.map(a=>a.nom===l.nom?{...a,qty:Math.max(0,(a.qty||0)-l.qty)}:a);
+        setStk(ns); onSaveStock(ns);
+        const newLignes = bl.lignes.filter((_,i)=>i!==idx);
+        const newBls = bls.map(b=>b.id===bl.id?{...b,lignes:newLignes}:b);
+        setBls(newBls);
+        onSaveMeta&&onSaveMeta({bls: newBls});
+        onToast(`${l.nom} retiré · stock restauré`);
+      }
+    );
   };
 
   const printBl = (bl) => {
@@ -538,27 +542,23 @@ export default function StockSection({
                     <div style={{marginTop:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <Btn small outline color={T3} onClick={()=>printBl(bl)}>{Ico.print} Imprimer</Btn>
                     {isAdmin&&(
-                        <Btn small outline color={RD} onClick={()=>{
-                          if(!window.confirm(`Supprimer le bon ${bl.num} ?\nLe stock sera restauré.`)) return;
-                          // Mise à jour stock : retirer les quantités du BR
-                          const ns = stk.map(a => {
-                            const line = (bl.lignes||[]).find(l=>l.nom===a.nom);
-                            if(!line) return a;
-                            return {...a, qty: Math.max(0,(a.qty||0)-line.qty)};
-                          });
-                          setStk(ns);
-                          onSaveStock(ns);
-                          // Mettre à jour bls et stkInLog SANS ce BR
-                          const newBls     = bls.filter(b=>b.id!==bl.id);
-                          const newStkInLog = stkInLog.filter(e=>e.bl!==bl.num);
-                          setBls(newBls);
-                          setStkInLog(newStkInLog);
-                          setBlViewId(null);
-                          // Passer les nouvelles valeurs directement à onSaveMeta
-                          // pour éviter tout problème de timing avec metaRef
-                          onSaveMeta&&onSaveMeta({bls:newBls, stkInLog:newStkInLog});
-                          onToast(`Bon ${bl.num} supprimé · stock restauré`);
-                        }}>
+                        <Btn small outline color={RD} onClick={()=>askConfirm(
+                          "Supprimer ce bon de réception ?",
+                          `Le bon ${bl.num} sera définitivement supprimé et le stock sera restauré.`,
+                          ()=>{
+                            const ns = stk.map(a => {
+                              const line = (bl.lignes||[]).find(l=>l.nom===a.nom);
+                              if(!line) return a;
+                              return {...a, qty: Math.max(0,(a.qty||0)-line.qty)};
+                            });
+                            setStk(ns); onSaveStock(ns);
+                            const newBls     = bls.filter(b=>b.id!==bl.id);
+                            const newStkInLog = stkInLog.filter(e=>e.bl!==bl.num);
+                            setBls(newBls); setStkInLog(newStkInLog); setBlViewId(null);
+                            onSaveMeta&&onSaveMeta({bls:newBls, stkInLog:newStkInLog});
+                            onToast(`Bon ${bl.num} supprimé · stock restauré`);
+                          }
+                        )}>
                           {Ico.trash} Supprimer le bon
                         </Btn>
                     )}
@@ -750,39 +750,46 @@ export default function StockSection({
     const lowItems=sortCart.filter(item=>{
       const art=stk.find(a=>a.nom===item.nom);
       if(!art) return false;
-      const newQty=(art.qty||0)-item.qty;
-      return (art.seuil||0)>0 && newQty<=(art.seuil||0);
+      return (art.seuil||0)>0 && (art.qty||0)-item.qty<=(art.seuil||0);
     });
+    const executeSortie = () => {
+      const tech=techs.find(t=>t.id===sortTech);
+      const tn=tech?techFullName(tech):sortTech;
+      const now=new Date();
+      const date=now.toISOString().slice(0,10);
+      const ym=now.toISOString().slice(0,7);
+      const time=now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+      let ns=[...stk];
+      const newOuts=[];
+      for(const item of sortCart){
+        const art=ns.find(a=>a.nom===item.nom);
+        if(!art||(art.qty||0)<item.qty){onToast(`Stock insuffisant pour ${item.nom}`,"warn");return;}
+        ns=ns.map(a=>a.nom===item.nom?{...a,qty:(a.qty||0)-item.qty}:a);
+        newOuts.push({id:Date.now()+Math.random(),techId:sortTech,techNom:tn,nom:item.nom,cat:item.cat||"",type:item.type||"",qty:item.qty,prix:item.prix||0,date,time,ym,createdBy:currentUser?.name||"—"});
+      }
+      setStk(ns); onSaveStock(ns);
+      const ns2=[...newOuts,...stkOut];
+      setStkOut(ns2); onSaveStkOut(ns2);
+      setSortCart([]); setSortTech(""); setShowForm(false);
+      onToast(`${newOuts.length} article${newOuts.length>1?"s":""} sorti${newOuts.length>1?"s":""} → ${tn} ✓`);
+      const alertItems = ns.filter(a=>(a.seuil||0)>0 && (a.qty||0)<=(a.seuil||0));
+      if(alertItems.length>0){
+        const dateStr = now.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"})+" "+time;
+        sendStockAlert(alertItems, currentUser?.name||"—", dateStr)
+          .then(()=>onToast("📧 Alerte stock envoyée par email"))
+          .catch(e=>console.error("Erreur email alert:",e));
+      }
+    };
     if(lowItems.length>0){
-      const names=lowItems.map(i=>i.nom).join('\n• ');
-      if(!window.confirm(`⚠️ Alerte stock bas !\nCes articles passeront sous ou au seuil d'alerte :\n• ${names}\n\nContinuer quand même ?`)) return;
-    }
-    const tech=techs.find(t=>t.id===sortTech);
-    const tn=tech?techFullName(tech):sortTech;
-    const now=new Date();
-    const date=now.toISOString().slice(0,10);
-    const ym=now.toISOString().slice(0,7);
-    const time=now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
-    let ns=[...stk];
-    const newOuts=[];
-    for(const item of sortCart){
-      const art=ns.find(a=>a.nom===item.nom);
-      if(!art||(art.qty||0)<item.qty){onToast(`Stock insuffisant pour ${item.nom}`,"warn");return;}
-      ns=ns.map(a=>a.nom===item.nom?{...a,qty:(a.qty||0)-item.qty}:a);
-      newOuts.push({id:Date.now()+Math.random(),techId:sortTech,techNom:tn,nom:item.nom,cat:item.cat||"",type:item.type||"",qty:item.qty,prix:item.prix||0,date,time,ym,createdBy:currentUser?.name||"—"});
-    }
-    setStk(ns); onSaveStock(ns);
-    const ns2=[...newOuts,...stkOut];
-    setStkOut(ns2); onSaveStkOut(ns2);
-    setSortCart([]); setSortTech(""); setShowForm(false);
-    onToast(`${newOuts.length} article${newOuts.length>1?"s":""} sorti${newOuts.length>1?"s":""} → ${tn} ✓`);
-    // ── Envoi email si des articles ont atteint/dépassé leur seuil ──
-    const alertItems = ns.filter(a=>(a.seuil||0)>0 && (a.qty||0)<=(a.seuil||0));
-    if(alertItems.length>0){
-      const dateStr = now.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"})+" "+time;
-      sendStockAlert(alertItems, currentUser?.name||"—", dateStr)
-        .then(()=>onToast("📧 Alerte stock envoyée par email"))
-        .catch(e=>console.error("Erreur email alert:",e));
+      askConfirm(
+        "Stock bas détecté",
+        `${lowItems.map(i=>`• ${i.nom}`).join("\n")} — ${lowItems.length>1?"ces articles passent":"cet article passe"} sous le seuil d'alerte. Confirmer quand même la sortie ?`,
+        executeSortie,
+        "Confirmer la sortie",
+        O
+      );
+    } else {
+      executeSortie();
     }
   };
 
@@ -819,12 +826,17 @@ export default function StockSection({
   };
 
   const deleteSortie = (s) => {
-    if(!window.confirm(`Supprimer la sortie de "${s.nom}" (×${s.qty}) pour ${s.techNom} ?\nLe stock sera restauré.`)) return;
-    const ns = stk.map(a=>a.nom===s.nom?{...a,qty:(a.qty||0)+s.qty}:a);
-    setStk(ns); onSaveStock(ns);
-    const ns2 = stkOut.filter(x=>x.id!==s.id);
-    setStkOut(ns2); onSaveStkOut(ns2);
-    onToast(`Sortie supprimée · ${s.qty}× ${s.nom} restauré au stock`);
+    askConfirm(
+      "Supprimer cette sortie ?",
+      `${s.qty}× "${s.nom}" pour ${s.techNom} sera annulé et le stock restauré.`,
+      () => {
+        const ns = stk.map(a=>a.nom===s.nom?{...a,qty:(a.qty||0)+s.qty}:a);
+        setStk(ns); onSaveStock(ns);
+        const ns2 = stkOut.filter(x=>x.id!==s.id);
+        setStkOut(ns2); onSaveStkOut(ns2);
+        onToast(`Sortie supprimée · ${s.qty}× ${s.nom} restauré au stock`);
+      }
+    );
   };
 
   const availableMonths=[...new Set(stkOut.map(s=>s.ym||s.date?.slice(0,7)).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
@@ -1168,6 +1180,12 @@ export default function StockSection({
   const [budgetEdit, setBudgetEdit] = useState(false);
   const [budgetInput, setBudgetInput] = useState("");
 
+  // ── Modal de confirmation générique ──
+  const [confirmDlg, setConfirmDlg] = useState(null);
+  // { title, body, confirmLabel, confirmColor, onConfirm }
+  const askConfirm = (title, body, onConfirm, confirmLabel="Supprimer", confirmColor=RD) =>
+    setConfirmDlg({title, body, onConfirm, confirmLabel, confirmColor});
+
   const renderStats = () => {
     // Uniquement les consommables dans les stats
     const stkOutConso = stkOut.filter(s=>s.type==="Consommable");
@@ -1479,8 +1497,17 @@ export default function StockSection({
     setCatForm(null); onToast("Catalogue mis à jour");
   };
   const deleteCat = id => {
-    if(!window.confirm("Supprimer cet article du catalogue ?")) return;
-    const nc=catalogue.filter(c=>c.id!==id);setCatalogue(nc);setTimeout(()=>onSaveMeta&&onSaveMeta(),300);onToast("Article supprimé");
+    const item = catalogue.find(c=>c.id===id);
+    askConfirm(
+      "Supprimer du catalogue ?",
+      `"${item?.nom||"Cet article"}" sera définitivement supprimé du catalogue.`,
+      () => {
+        const nc=catalogue.filter(c=>c.id!==id);
+        setCatalogue(nc);
+        setTimeout(()=>onSaveMeta&&onSaveMeta(),300);
+        onToast("Article supprimé du catalogue");
+      }
+    );
   };
   const filtCat=catalogue.filter(c=>!catSearch||c.nom?.toLowerCase().includes(catSearch.toLowerCase())||c.cat?.toLowerCase().includes(catSearch.toLowerCase()));
   const catGroups=[...new Set(catalogue.map(c=>c.cat||""))].filter(Boolean).sort();
@@ -1675,8 +1702,17 @@ export default function StockSection({
     setTechForm(null);onToast(techForm?.id?"Technicien mis à jour":"Technicien ajouté ✓");
   };
   const deleteTech = id => {
-    if(!window.confirm("Supprimer ce technicien ?")) return;
-    const nt=techs.filter(t=>t.id!==id);setTechs(nt);setTimeout(()=>onSaveTechs&&onSaveTechs(nt),200);onToast("Technicien supprimé");
+    const tech = techs.find(t=>t.id===id);
+    askConfirm(
+      "Retirer ce technicien ?",
+      `${tech?.n||[tech?.prenom,tech?.nom].filter(Boolean).join(" ")||"Ce technicien"} sera retiré de l'équipe. Son historique de sorties reste conservé.`,
+      () => {
+        const nt=techs.filter(t=>t.id!==id);
+        setTechs(nt);
+        setTimeout(()=>onSaveTechs&&onSaveTechs(nt),200);
+        onToast("Technicien retiré de l'équipe");
+      }
+    );
   };
 
   const TechAvatar = ({t, size=44}) => (
@@ -1867,6 +1903,30 @@ export default function StockSection({
 
   return (
     <div style={{display:"flex",fontFamily:FF,height:"100%"}}>
+
+      {/* ══ Modal confirmation suppression ══ */}
+      {confirmDlg&&(
+        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,.5)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
+          onClick={e=>{if(e.target===e.currentTarget)setConfirmDlg(null);}}>
+          <div style={{background:C1,borderRadius:16,width:"100%",maxWidth:340,padding:"24px 20px",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+              <div style={{width:36,height:36,borderRadius:10,background:RDL,display:"flex",alignItems:"center",justifyContent:"center",color:RD,flexShrink:0}}>{Ico.trash}</div>
+              <div style={{fontSize:15,fontWeight:800,color:T1}}>{confirmDlg.title}</div>
+            </div>
+            <div style={{fontSize:13,color:T3,marginBottom:22,lineHeight:1.6,paddingLeft:46}}>{confirmDlg.body}</div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>setConfirmDlg(null)}
+                style={{flex:1,padding:"11px",background:C2,border:"none",borderRadius:9,fontSize:13,fontWeight:700,color:T2,cursor:"pointer"}}>
+                Annuler
+              </button>
+              <button onClick={()=>{confirmDlg.onConfirm();setConfirmDlg(null);}}
+                style={{flex:1,padding:"11px",background:confirmDlg.confirmColor||RD,border:"none",borderRadius:9,fontSize:13,fontWeight:700,color:"#fff",cursor:"pointer"}}>
+                {confirmDlg.confirmLabel||"Supprimer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ══ Modal impression bons de sortie (hors conteneur scroll) ══ */}
       {printModal&&(
