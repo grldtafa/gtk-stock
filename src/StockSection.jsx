@@ -788,6 +788,10 @@ export default function StockSection({
 
   const sortTotal=sortCart.reduce((s,l)=>s+(l.qty||0)*(l.prix||0),0);
 
+  // ── Groupes développés dans l'historique ──
+  const [expandedGroups, setExpandedGroups] = useState(new Set());
+  const toggleGroup = (key) => setExpandedGroups(prev=>{const n=new Set(prev);n.has(key)?n.delete(key):n.add(key);return n;});
+
   // ── Édition / suppression d'une sortie ──
   const [editSortId,   setEditSortId]   = useState(null);
   const [editSortQty,  setEditSortQty]  = useState(1);
@@ -1055,83 +1059,97 @@ export default function StockSection({
                       {totalVal>0&&<span style={{color:O,fontFamily:FM,fontWeight:700}}>{f(totalVal)}</span>}
                     </div>
                   </div>
-                  {/* Lignes */}
+                  {/* Lignes groupées par session (tech + date + heure) */}
                   <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                    {entries.map(s=>{
-                      const t=techs.find(x=>x.id===s.techId);
-                      const isEditing=editSortId===s.id;
-                      return (
-                        <Card key={s.id} style={{padding:"10px 14px"}}>
-                          {isEditing ? (
-                            /* ── Mode édition ── */
-                            <div>
-                              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                                <div style={{flex:1,fontSize:13,fontWeight:700,color:T1}}>{s.nom}</div>
-                                <button onClick={cancelEditSortie} style={{background:C3,border:`1px solid ${C2}`,borderRadius:6,width:26,height:26,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:T4,padding:0}}>{Ico.close}</button>
-                              </div>
-                              {/* Tech */}
-                              {techs.length>0&&(
-                                <div style={{marginBottom:10}}>
-                                  <label style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,display:"block",marginBottom:4}}>Technicien</label>
-                                  <select value={editSortTech} onChange={e=>setEditSortTech(e.target.value)}
-                                    style={{width:"100%",background:C1,border:`1.5px solid ${editSortTech?O:C2}`,borderRadius:8,padding:"8px 10px",fontSize:13,color:T1,fontFamily:FF,outline:"none",cursor:"pointer"}}>
-                                    {[...techs].sort((a,b)=>techFullName(a).localeCompare(techFullName(b),"fr")).map(t=><option key={t.id} value={t.id}>{techFullName(t)}</option>)}
-                                  </select>
-                                </div>
-                              )}
-                              {/* Quantité */}
-                              <div style={{marginBottom:12}}>
-                                <label style={{fontSize:10,fontWeight:700,color:T4,textTransform:"uppercase",letterSpacing:.8,display:"block",marginBottom:4}}>Quantité</label>
-                                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                                  <button onClick={()=>setEditSortQty(q=>Math.max(1,q-1))} style={{width:32,height:32,borderRadius:8,background:C3,border:`1px solid ${C2}`,cursor:"pointer",fontWeight:900,fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:T2}}>−</button>
-                                  <input type="number" value={editSortQty} min="1"
-                                    onChange={e=>setEditSortQty(Math.max(1,parseInt(e.target.value)||1))}
-                                    style={{flex:1,textAlign:"center",fontSize:20,fontWeight:900,fontFamily:FM,border:`1.5px solid ${C2}`,borderRadius:8,padding:"6px",color:T1,background:C1,outline:"none"}}/>
-                                  <button onClick={()=>setEditSortQty(q=>q+1)} style={{width:32,height:32,borderRadius:8,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}>+</button>
-                                </div>
-                              </div>
-                              {/* Actions */}
-                              <div style={{display:"flex",gap:8}}>
-                                <Btn full outline color={T3} onClick={cancelEditSortie}>Annuler</Btn>
-                                <Btn full color={GR} onClick={()=>saveEditSortie(s)}>{Ico.check} Enregistrer</Btn>
-                              </div>
-                            </div>
-                          ) : (
-                            /* ── Mode normal ── */
-                            <div style={{display:"flex",alignItems:"center",gap:10}}>
-                              {t?<TechAvatar t={t} size={34}/>
-                                :<div style={{width:34,height:34,borderRadius:17,background:C3,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:11,fontWeight:700,color:T4}}>?</div>}
+                    {(()=>{
+                      // Grouper par session
+                      const groups={};
+                      entries.forEach(s=>{
+                        const key=`${s.techId||s.techNom}__${s.date}__${s.time||""}`;
+                        if(!groups[key]) groups[key]={key,techId:s.techId,techNom:s.techNom,date:s.date,time:s.time,createdBy:s.createdBy,ym:s.ym,items:[]};
+                        groups[key].items.push(s);
+                      });
+                      return Object.values(groups).map(grp=>{
+                        const t=techs.find(x=>x.id===grp.techId);
+                        const grpQty=grp.items.reduce((s,i)=>s+i.qty,0);
+                        const grpVal=grp.items.reduce((s,i)=>s+i.qty*(i.prix||0),0);
+                        const isOpen=expandedGroups.has(grp.key);
+                        return (
+                          <Card key={grp.key} style={{padding:"10px 14px"}}>
+                            {/* En-tête groupe — cliquable */}
+                            <div onClick={()=>toggleGroup(grp.key)} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",userSelect:"none"}}>
+                              {t?<TechAvatar t={t} size={36}/>
+                                :<div style={{width:36,height:36,borderRadius:18,background:C3,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:11,fontWeight:700,color:T4}}>?</div>}
                               <div style={{flex:1,minWidth:0}}>
-                                <div style={{fontSize:13,fontWeight:700,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.nom}</div>
+                                <div style={{fontSize:13,fontWeight:800,color:T1}}>{grp.techNom||"Inconnu"}</div>
                                 <div style={{display:"flex",gap:6,marginTop:2,alignItems:"center",flexWrap:"wrap"}}>
-                                  <span style={{fontSize:11,color:T4}}>{s.techNom}</span>
-                                  <span style={{fontSize:10,color:T5}}>·</span>
-                                  <span style={{fontSize:11,color:T5}}>{s.date?fmtDate(s.date):s.ym||"—"}{s.time&&<span style={{marginLeft:4}}>{s.time}</span>}</span>
-                                  {s.createdBy&&<><span style={{fontSize:10,color:T5}}>·</span><span style={{fontSize:11,color:O,fontWeight:700}}>{s.createdBy}</span></>}
-                                  {s.type&&<Badge bg={TYPE_STYLE[s.type]?.bg||C3} c={TYPE_STYLE[s.type]?.c||T4}>{s.type}</Badge>}
+                                  <span style={{fontSize:11,color:T5}}>{grp.date?fmtDate(grp.date):grp.ym||"—"}{grp.time&&<span style={{marginLeft:4}}>{grp.time}</span>}</span>
+                                  {grp.createdBy&&<><span style={{fontSize:10,color:T5}}>·</span><span style={{fontSize:11,color:O,fontWeight:700}}>{grp.createdBy}</span></>}
                                 </div>
                               </div>
-                              <div style={{textAlign:"right",flexShrink:0,marginRight:4}}>
-                                <div style={{fontFamily:FM,fontWeight:900,color:O,fontSize:15}}>×{s.qty}</div>
-                                {s.prix>0&&<div style={{fontSize:10,color:T5,fontFamily:FM}}>{f(s.qty*s.prix)}</div>}
+                              <div style={{textAlign:"right",flexShrink:0,marginRight:6}}>
+                                <div style={{fontFamily:FM,fontWeight:900,color:O,fontSize:13}}>{grpQty} art.</div>
+                                {grpVal>0&&<div style={{fontSize:10,color:T5,fontFamily:FM}}>{f(grpVal)}</div>}
                               </div>
-                              {isAdmin&&(
-                                <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
-                                  <button onClick={()=>openEditSortie(s)} title="Modifier"
-                                    style={{width:28,height:28,borderRadius:6,background:OL,border:`1px solid ${O}30`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:O,padding:0}}>
-                                    {Ico.edit}
-                                  </button>
-                                  <button onClick={()=>deleteSortie(s)} title="Supprimer"
-                                    style={{width:28,height:28,borderRadius:6,background:RDL,border:`1px solid ${RD}20`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:RD,padding:0}}>
-                                    {Ico.trash}
-                                  </button>
-                                </div>
-                              )}
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T4} strokeWidth="2.5"
+                                style={{flexShrink:0,transform:isOpen?"rotate(180deg)":"none",transition:"transform .15s"}}>
+                                <polyline points="6 9 12 15 18 9"/>
+                              </svg>
                             </div>
-                          )}
-                        </Card>
-                      );
-                    })}
+                            {/* Liste des articles */}
+                            {isOpen&&(
+                              <div style={{marginTop:10,borderTop:`1px solid ${C2}`,paddingTop:10,display:"flex",flexDirection:"column",gap:6}}>
+                                {grp.items.map(s=>{
+                                  const isEditing=editSortId===s.id;
+                                  return isEditing ? (
+                                    <div key={s.id} style={{background:C3,borderRadius:8,padding:"10px 12px"}}>
+                                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                                        <div style={{flex:1,fontSize:13,fontWeight:700,color:T1}}>{s.nom}</div>
+                                        <button onClick={cancelEditSortie} style={{background:C2,border:"none",borderRadius:6,width:26,height:26,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:T4,padding:0}}>{Ico.close}</button>
+                                      </div>
+                                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                                        <button onClick={()=>setEditSortQty(q=>Math.max(1,q-1))} style={{width:32,height:32,borderRadius:8,background:C2,border:"none",cursor:"pointer",fontWeight:900,fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:T2}}>−</button>
+                                        <input type="number" value={editSortQty} min="1" onChange={e=>setEditSortQty(Math.max(1,parseInt(e.target.value)||1))}
+                                          style={{flex:1,textAlign:"center",fontSize:18,fontWeight:900,fontFamily:FM,border:`1.5px solid ${C2}`,borderRadius:8,padding:"6px",color:T1,background:C1,outline:"none"}}/>
+                                        <button onClick={()=>setEditSortQty(q=>q+1)} style={{width:32,height:32,borderRadius:8,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}>+</button>
+                                      </div>
+                                      <div style={{display:"flex",gap:8}}>
+                                        <Btn full outline color={T3} onClick={cancelEditSortie}>Annuler</Btn>
+                                        <Btn full color={GR} onClick={()=>saveEditSortie(s)}>{Ico.check} Enregistrer</Btn>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",background:C3,borderRadius:8}}>
+                                      <div style={{width:3,height:28,borderRadius:2,flexShrink:0,background:s.type==="Consommable"?BL:s.type==="Outillage"?PU:C2}}/>
+                                      <div style={{flex:1,minWidth:0}}>
+                                        <div style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.nom}</div>
+                                        {s.type&&<Badge bg={TYPE_STYLE[s.type]?.bg||C3} c={TYPE_STYLE[s.type]?.c||T4} style={{marginTop:2}}>{s.type}</Badge>}
+                                      </div>
+                                      <div style={{textAlign:"right",flexShrink:0,marginRight:4}}>
+                                        <div style={{fontFamily:FM,fontWeight:900,color:O,fontSize:13}}>×{s.qty}</div>
+                                        {s.prix>0&&<div style={{fontSize:10,color:T5,fontFamily:FM}}>{f(s.qty*s.prix)}</div>}
+                                      </div>
+                                      {isAdmin&&(
+                                        <div style={{display:"flex",gap:4,flexShrink:0}}>
+                                          <button onClick={e=>{e.stopPropagation();openEditSortie(s);}} title="Modifier"
+                                            style={{width:26,height:26,borderRadius:6,background:OL,border:`1px solid ${O}30`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:O,padding:0}}>
+                                            {Ico.edit}
+                                          </button>
+                                          <button onClick={e=>{e.stopPropagation();deleteSortie(s);}} title="Supprimer"
+                                            style={{width:26,height:26,borderRadius:6,background:RDL,border:`1px solid ${RD}20`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:RD,padding:0}}>
+                                            {Ico.trash}
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </Card>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
               );
