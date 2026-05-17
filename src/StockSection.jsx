@@ -1628,10 +1628,11 @@ export default function StockSection({
   // ════════════════════════════════════════════════════════
   // TECHNICIENS
   // ════════════════════════════════════════════════════════
-  const [techForm,   setTechForm]   = useState(null);
-  const [techPrenom, setTechPrenom] = useState("");
-  const [techNom,    setTechNom]    = useState("");
-  const [techPhoto,  setTechPhoto]  = useState("");
+  const [techForm,    setTechForm]    = useState(null);
+  const [techPrenom,  setTechPrenom]  = useState("");
+  const [techNom,     setTechNom]     = useState("");
+  const [techPhoto,   setTechPhoto]   = useState("");
+  const [techsFilter, setTechsFilter] = useState(""); // "" = tout, sinon ym "2026-05"
 
   // Compatibilité ancien format {n} → {prenom, nom}
   const techFullName = t => t.prenom||t.nom ? `${t.prenom||""} ${t.nom||""}`.trim() : (t.n||"");
@@ -1686,13 +1687,35 @@ export default function StockSection({
         </div>
   );
 
-  const renderTechs = () => (
+  const renderTechs = () => {
+    // Mois disponibles depuis l'historique des sorties, tri desc
+    const availMonths = [...new Set(stkOut.map(s=>s.ym||s.date?.slice(0,7)).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+    const pillBase = {border:"none",borderRadius:20,padding:"5px 13px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",transition:"all .12s"};
+    return (
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{fontSize:12,color:T4}}>{techs.length} technicien{techs.length!==1?"s":""}</div>
         {isAdmin&&!techForm&&<Btn small onClick={()=>openTechForm()}>{Ico.plus} Ajouter</Btn>}
         {techForm&&<Btn small outline color={T3} onClick={()=>setTechForm(null)}>Annuler</Btn>}
       </div>
+
+      {/* ── Filtre par mois ── */}
+      {availMonths.length>0&&(
+        <div style={{overflowX:"auto",marginBottom:14,paddingBottom:2,WebkitOverflowScrolling:"touch"}}>
+          <div style={{display:"flex",gap:6,minWidth:"max-content",paddingRight:4}}>
+            <button onClick={()=>setTechsFilter("")}
+              style={{...pillBase,background:techsFilter===""?O:C2,color:techsFilter===""?"#fff":T3}}>
+              Tout
+            </button>
+            {availMonths.map(ym=>(
+              <button key={ym} onClick={()=>setTechsFilter(ym)}
+                style={{...pillBase,background:techsFilter===ym?O:C2,color:techsFilter===ym?"#fff":T3}}>
+                {fmtYM(ym)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {techForm&&(
         <Card style={{marginBottom:16}}>
           <div style={{fontSize:12,fontWeight:700,color:O,marginBottom:14,display:"flex",alignItems:"center",gap:6}}>{techForm.id?<>{Ico.edit}Modifier</>:<>{Ico.plus}Nouveau technicien</>}</div>
@@ -1735,25 +1758,52 @@ export default function StockSection({
           </Card>
         : <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {[...techs].sort((a,b)=>techFullName(a).localeCompare(techFullName(b),"fr")).map(t=>{
-              const sorties=stkOut.filter(s=>s.techId===t.id);
+              // Filtre par mois si sélectionné
+              const sorties=stkOut.filter(s=>s.techId===t.id&&(!techsFilter||(s.ym||s.date?.slice(0,7))===techsFilter));
               const totalVal=sorties.reduce((s,x)=>s+(x.qty||0)*(x.prix||0),0);
               const totalQty=sorties.reduce((s,x)=>s+(x.qty||0),0);
-              // Top 3 articles consommés
+
+              // Comparaison avec mois précédent (si filtre actif)
+              let prevVal=null;
+              if(techsFilter&&availMonths.length>1){
+                const idxCur=availMonths.indexOf(techsFilter);
+                const prevYm=idxCur<availMonths.length-1?availMonths[idxCur+1]:null;
+                if(prevYm){
+                  const prev=stkOut.filter(s=>s.techId===t.id&&(s.ym||s.date?.slice(0,7))===prevYm);
+                  prevVal=prev.reduce((s,x)=>s+(x.qty||0)*(x.prix||0),0);
+                }
+              }
+              const evol=prevVal!==null&&prevVal>0?((totalVal-prevVal)/prevVal*100):null;
+
+              // Top 3 articles (filtrés)
               const byArt=sorties.reduce((acc,s)=>{
-                if(!acc[s.nom]) acc[s.nom]={nom:s.nom,qty:0};
-                acc[s.nom].qty+=s.qty||0; return acc;
+                if(!acc[s.nom]) acc[s.nom]={nom:s.nom,qty:0,val:0};
+                acc[s.nom].qty+=s.qty||0;
+                acc[s.nom].val+=(s.qty||0)*(s.prix||0);
+                return acc;
               },{});
               const topArts=Object.values(byArt).sort((a,b)=>b.qty-a.qty).slice(0,3);
+
               return (
               <Card key={t.id} style={{padding:"14px 16px"}}>
                 <div style={{display:"flex",alignItems:"center",gap:14}}>
-                  <TechAvatar t={t} size={52}/>
+                  <TechAvatar t={t} size={isMob?42:52}/>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:14,fontWeight:700,color:T1}}>{techFullName(t)}</div>
-                    <div style={{display:"flex",gap:10,marginTop:3,flexWrap:"wrap"}}>
-                      <span style={{fontSize:11,color:T4}}>{sorties.length} sortie{sorties.length!==1?"s":""}</span>
-                      {totalQty>0&&<span style={{fontSize:11,color:T4}}>· {totalQty} article{totalQty!==1?"s":""}</span>}
-                      {totalVal>0&&<span style={{fontSize:11,fontWeight:700,color:O}}>· {f(totalVal)}</span>}
+                    <div style={{fontSize:isMob?13:14,fontWeight:700,color:T1}}>{techFullName(t)}</div>
+                    <div style={{display:"flex",gap:8,marginTop:3,flexWrap:"wrap",alignItems:"center"}}>
+                      {sorties.length===0
+                        ? <span style={{fontSize:11,color:T5,fontStyle:"italic"}}>{techsFilter?"Aucune sortie ce mois":"Aucune sortie"}</span>
+                        : <>
+                            <span style={{fontSize:11,color:T4}}>{sorties.length} sortie{sorties.length!==1?"s":""}</span>
+                            {totalQty>0&&<span style={{fontSize:11,color:T4}}>· {totalQty} art.</span>}
+                            {totalVal>0&&<span style={{fontSize:11,fontWeight:700,color:O}}>· {f(totalVal)}</span>}
+                            {evol!==null&&(
+                              <span style={{fontSize:10,fontWeight:700,color:evol>0?RD:GR,background:evol>0?RDL:GRL,borderRadius:10,padding:"1px 6px"}}>
+                                {evol>0?"+":""}{evol.toFixed(0)}% vs mois préc.
+                              </span>
+                            )}
+                          </>
+                      }
                     </div>
                   </div>
                   {isAdmin&&(
@@ -1764,14 +1814,16 @@ export default function StockSection({
                   )}
                 </div>
                 {topArts.length>0&&(
-                  <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C2}`,display:"flex",flexDirection:"column",gap:4}}>
-                    <div style={{fontSize:9,fontWeight:700,color:T5,textTransform:"uppercase",letterSpacing:.8,marginBottom:2}}>Articles consommés</div>
+                  <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C2}`,display:"flex",flexDirection:"column",gap:6}}>
+                    <div style={{fontSize:9,fontWeight:700,color:T5,textTransform:"uppercase",letterSpacing:.8,marginBottom:2}}>
+                      {techsFilter?`Articles — ${fmtYM(techsFilter)}`:"Articles consommés (total)"}
+                    </div>
                     {topArts.map(a=>{
                       const maxQ=topArts[0].qty||1;
                       return (
                         <div key={a.nom} style={{display:"flex",alignItems:"center",gap:8}}>
-                          <div style={{fontSize:11,color:T2,fontWeight:500,minWidth:0,flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{a.nom}</div>
-                          <div style={{width:80,height:5,borderRadius:3,background:C3,flexShrink:0}}>
+                          <div style={{fontSize:11,color:T2,fontWeight:500,minWidth:0,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.nom}</div>
+                          <div style={{width:isMob?60:80,height:5,borderRadius:3,background:C3,flexShrink:0}}>
                             <div style={{height:"100%",borderRadius:3,background:PU,width:`${Math.round((a.qty/maxQ)*100)}%`}}/>
                           </div>
                           <div style={{fontSize:11,fontFamily:FM,fontWeight:700,color:PU,flexShrink:0,minWidth:24,textAlign:"right"}}>×{a.qty}</div>
@@ -1786,7 +1838,8 @@ export default function StockSection({
           </div>
       }
     </div>
-  );
+  );};
+
 
   // ════════════════════════════════════════════════════════
   // RENDER PRINCIPAL
