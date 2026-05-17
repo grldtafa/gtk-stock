@@ -1059,14 +1059,14 @@ export default function StockSection({
                       {totalVal>0&&<span style={{color:O,fontFamily:FM,fontWeight:700}}>{f(totalVal)}</span>}
                     </div>
                   </div>
-                  {/* Lignes groupées par session (tech + date + heure) */}
+                  {/* Lignes groupées par technicien + date (toutes heures confondues) */}
                   <div style={{display:"flex",flexDirection:"column",gap:5}}>
                     {(()=>{
-                      // Grouper par session
+                      // Grouper par technicien + jour (pas par heure)
                       const groups={};
                       entries.forEach(s=>{
-                        const key=`${s.techId||s.techNom}__${s.date}__${s.time||""}`;
-                        if(!groups[key]) groups[key]={key,techId:s.techId,techNom:s.techNom,date:s.date,time:s.time,createdBy:s.createdBy,ym:s.ym,items:[]};
+                        const key=`${s.techId||s.techNom}__${s.date}`;
+                        if(!groups[key]) groups[key]={key,techId:s.techId,techNom:s.techNom,date:s.date,createdBy:s.createdBy,ym:s.ym,items:[]};
                         groups[key].items.push(s);
                       });
                       return Object.values(groups).map(grp=>{
@@ -1083,7 +1083,7 @@ export default function StockSection({
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:13,fontWeight:800,color:T1}}>{grp.techNom||"Inconnu"}</div>
                                 <div style={{display:"flex",gap:6,marginTop:2,alignItems:"center",flexWrap:"wrap"}}>
-                                  <span style={{fontSize:11,color:T5}}>{grp.date?fmtDate(grp.date):grp.ym||"—"}{grp.time&&<span style={{marginLeft:4}}>{grp.time}</span>}</span>
+                                  <span style={{fontSize:11,color:T5}}>{grp.date?fmtDate(grp.date):grp.ym||"—"}</span>
                                   {grp.createdBy&&<><span style={{fontSize:10,color:T5}}>·</span><span style={{fontSize:11,color:O,fontWeight:700}}>{grp.createdBy}</span></>}
                                 </div>
                               </div>
@@ -1123,7 +1123,10 @@ export default function StockSection({
                                       <div style={{width:3,height:28,borderRadius:2,flexShrink:0,background:s.type==="Consommable"?BL:s.type==="Outillage"?PU:C2}}/>
                                       <div style={{flex:1,minWidth:0}}>
                                         <div style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.nom}</div>
-                                        {s.type&&<Badge bg={TYPE_STYLE[s.type]?.bg||C3} c={TYPE_STYLE[s.type]?.c||T4} style={{marginTop:2}}>{s.type}</Badge>}
+                                        <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2,flexWrap:"wrap"}}>
+                                          {s.type&&<Badge bg={TYPE_STYLE[s.type]?.bg||C3} c={TYPE_STYLE[s.type]?.c||T4}>{s.type}</Badge>}
+                                          {s.time&&<span style={{fontSize:10,color:T5,fontFamily:FM}}>{s.time}</span>}
+                                        </div>
                                       </div>
                                       <div style={{textAlign:"right",flexShrink:0,marginRight:4}}>
                                         <div style={{fontFamily:FM,fontWeight:900,color:O,fontSize:13}}>×{s.qty}</div>
