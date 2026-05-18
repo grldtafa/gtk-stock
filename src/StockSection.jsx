@@ -303,21 +303,16 @@ export default function StockSection({
   const [blLignes,    setBlLignes]    = useState([]);
   const [blCatSearch, setBlCatSearch] = useState("");
   const [blViewId,    setBlViewId]    = useState(null);
-  const [blCartOpen,  setBlCartOpen]  = useState(true); // panier réduit/étendu
+  const [blCartOpen,  setBlCartOpen]  = useState(false); // panier réduit/étendu
   const blCartRef   = useRef(null);
   const blItemRefs  = useRef({});
 
   const addToCart = (c, qty=1) => {
-    setBlCartOpen(true);
     setBlLignes(prev => {
       const existing=prev.find(l=>l.nom===c.nom);
       if(existing) return prev.map(l=>l.nom===c.nom?{...l,qty:l.qty+qty}:l);
       return [...prev,{id:Date.now()+Math.random(),nom:c.nom,cat:c.cat||"",type:c.type||"",qty,prix:c.prix||0}];
     });
-    setTimeout(()=>{
-      blCartRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"});
-      blItemRefs.current[c.nom]?.scrollIntoView({behavior:"smooth",block:"nearest"});
-    },80);
   };
   const cartDelta = (id, delta) => {
     setBlLignes(prev=>prev.map(l=>l.id===id?{...l,qty:Math.max(0,l.qty+delta)}:l).filter(l=>l.qty>0));
@@ -707,7 +702,7 @@ export default function StockSection({
   const [sortTech,      setSortTech]      = useState("");
   const [sortTechOpen,  setSortTechOpen]  = useState(false);
   const [sortCart,      setSortCart]      = useState([]);
-  const [sortCartOpen,  setSortCartOpen]  = useState(true);
+  const [sortCartOpen,  setSortCartOpen]  = useState(false);
   const sortCartRef  = useRef(null);
   const sortItemRefs = useRef({});
   const [sortStkSearch, setSortStkSearch] = useState("");
@@ -728,16 +723,11 @@ export default function StockSection({
     const dispo = (art.qty||0) - (inCart?.qty||0);
     if(dispo<=0){ onToast(`Stock épuisé pour ${art.nom}`,"warn"); return; }
     const toAdd = Math.min(qty, dispo);
-    setSortCartOpen(true);
     setSortCart(prev=>{
       const ex=prev.find(l=>l.nom===art.nom);
       if(ex) return prev.map(l=>l.nom===art.nom?{...l,qty:Math.min(l.qty+toAdd,art.qty||0)}:l);
       return [...prev,{id:Date.now()+Math.random(),nom:art.nom,cat:art.cat||"",type:art.type||"",qty:toAdd,prix:art.prix||0,stock:art.qty||0}];
     });
-    setTimeout(()=>{
-      sortCartRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"});
-      sortItemRefs.current[art.nom]?.scrollIntoView({behavior:"smooth",block:"nearest"});
-    },80);
   };
   const sortCartDelta = (id, delta) => {
     setSortCart(prev=>{
