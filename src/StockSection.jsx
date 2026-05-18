@@ -307,12 +307,12 @@ export default function StockSection({
   const blCartRef   = useRef(null);
   const blItemRefs  = useRef({});
 
-  const addToCart = (c) => {
+  const addToCart = (c, qty=1) => {
     setBlCartOpen(true);
     setBlLignes(prev => {
       const existing=prev.find(l=>l.nom===c.nom);
-      if(existing) return prev.map(l=>l.nom===c.nom?{...l,qty:l.qty+1}:l);
-      return [...prev,{id:Date.now()+Math.random(),nom:c.nom,cat:c.cat||"",type:c.type||"",qty:1,prix:c.prix||0}];
+      if(existing) return prev.map(l=>l.nom===c.nom?{...l,qty:l.qty+qty}:l);
+      return [...prev,{id:Date.now()+Math.random(),nom:c.nom,cat:c.cat||"",type:c.type||"",qty,prix:c.prix||0}];
     });
     setTimeout(()=>{
       blCartRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"});
@@ -580,18 +580,58 @@ export default function StockSection({
           </div>
           <Input label="" type="date" value={blDate} onChange={e=>setBlDate(e.target.value)} style={{width:150}}/>
         </div>
+        {/* ── Panier (sticky TOP) ── */}
+        {blLignes.length>0&&(
+          <div ref={blCartRef} style={{position:"sticky",top:0,zIndex:10,marginBottom:12}}>
+          <Card style={{boxShadow:"0 4px 20px rgba(0,0,0,.12)",border:`1.5px solid ${O}30`}}>
+            <div onClick={()=>setBlCartOpen(o=>!o)}
+              style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:blCartOpen?10:0,cursor:"pointer",userSelect:"none"}}>
+              <div style={{fontSize:12,fontWeight:800,color:T1,display:"flex",alignItems:"center",gap:6}}>
+                <span style={{background:O,color:"#fff",borderRadius:8,fontSize:10,fontWeight:900,padding:"2px 7px"}}>{blLignes.length}</span>
+                article{blLignes.length!==1?"s":""} sélectionné{blLignes.length!==1?"s":""}
+                {totalBl>0&&<span style={{fontFamily:FM,fontWeight:700,color:O,fontSize:11,marginLeft:4}}>{f(totalBl)}</span>}
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <button onClick={e=>{e.stopPropagation();setBlLignes([]);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:T5,textDecoration:"underline"}}>Vider</button>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T4} strokeWidth="2.5" style={{transform:blCartOpen?"rotate(180deg)":"none",transition:"transform .15s",flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+            {blCartOpen&&(
+              <div style={{maxHeight:160,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
+                {blLignes.map(l=>(
+                  <div key={l.id} ref={el=>{if(el)blItemRefs.current[l.nom]=el;}} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
+                    <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l.nom}</div>
+                      {l.prix>0&&<div style={{fontSize:10,color:T4,fontFamily:FM}}>{f(l.prix)}</div>}
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                      <button onClick={()=>cartDelta(l.id,-1)} style={{width:24,height:24,borderRadius:6,background:C2,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:T2}}>−</button>
+                      <input type="number" value={l.qty} onChange={e=>cartSetQty(l.id,e.target.value)} min="1"
+                        onClick={e=>e.target.select()}
+                        style={{width:36,textAlign:"center",fontFamily:FM,fontWeight:800,fontSize:13,border:`1.5px solid ${C2}`,borderRadius:6,padding:"3px 4px",color:T1,background:C1,outline:"none"}}/>
+                      <button onClick={()=>cartDelta(l.id,1)} style={{width:24,height:24,borderRadius:6,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}>+</button>
+                    </div>
+                    <button onClick={()=>setBlLignes(blLignes.filter(x=>x.id!==l.id))} style={{background:RDL,border:`1px solid ${RD}20`,borderRadius:6,cursor:"pointer",color:RD,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>{Ico.close}</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Btn onClick={validerBL} color={GR} style={{width:"100%"}}>{Ico.check} Valider la réception</Btn>
+          </Card>
+          </div>
+        )}
+
         {/* ── Catalogue sélectionnable ── */}
         <div style={{marginBottom:10}}>
           <div style={{fontSize:11,fontWeight:700,color:T3,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>
             Catalogue · {catalogue.length} référence{catalogue.length!==1?"s":""}
           </div>
-          {/* Recherche */}
           <div style={{position:"relative",marginBottom:10}}>
             <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:T5}}>{Ico.search}</span>
             <input value={blCatSearch} onChange={e=>setBlCatSearch(e.target.value)} placeholder="Filtrer les articles…"
               style={{background:C1,border:`1.5px solid ${C2}`,borderRadius:8,padding:"9px 12px 9px 34px",fontSize:13,color:T1,fontFamily:FF,outline:"none",width:"100%",boxSizing:"border-box"}}/>
           </div>
-          {/* Grille */}
           {catalogue.length===0
             ? <Card style={{textAlign:"center",padding:"32px",color:T4,fontSize:13}}>Ajoutez des articles dans le Catalogue d'abord</Card>
             : (()=>{
@@ -606,36 +646,54 @@ export default function StockSection({
                   <div style={{display:"flex",flexDirection:"column",gap:14}}>
                     {keys.map(cat=>(
                       <div key={cat}>
-                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
                           <div style={{width:3,height:14,borderRadius:2,background:CAT_COLOR[cat]||T4,flexShrink:0}}/>
                           <span style={{fontSize:11,fontWeight:800,color:CAT_COLOR[cat]||T4,textTransform:"uppercase",letterSpacing:1}}>{cat}</span>
-                          <span style={{fontSize:10,color:T5}}>· {groups[cat].length} article{groups[cat].length>1?"s":""}</span>
+                          <span style={{fontSize:10,color:T5}}>· {groups[cat].length}</span>
                           <div style={{flex:1,height:1,background:CAT_COLOR[cat]||C2,opacity:.2}}/>
                         </div>
-                        <div style={{display:"grid",gridTemplateColumns:isMob?"1fr 1fr":"repeat(3,1fr)",gap:8}}>
+                        <div style={{display:"flex",flexDirection:"column",gap:4}}>
                           {groups[cat].map(c=>{
                             const inCart=blLignes.find(l=>l.nom===c.nom);
                             const ts=c.type?TYPE_STYLE[c.type]:null;
                             return (
-                              <button key={c.id} onClick={()=>addToCart(c)} style={{
-                                background:inCart?OL:C1,border:`1.5px solid ${inCart?O:C2}`,borderRadius:10,
-                                padding:"10px 12px",textAlign:"left",cursor:"pointer",fontFamily:FF,
-                                display:"flex",flexDirection:"column",gap:5,position:"relative",
-                                transition:"all .12s",boxShadow:inCart?`0 0 0 1px ${O}30`:SH
-                              }}>
-                                {inCart&&<span style={{position:"absolute",top:-6,right:-6,background:O,color:"#fff",borderRadius:10,fontSize:10,fontWeight:900,padding:"2px 6px",minWidth:20,textAlign:"center"}}>{inCart.qty}</span>}
-                                <div style={{display:"flex",alignItems:"center",gap:7}}>
-                                  {c.photo&&<img src={c.photo} alt={c.nom} style={{width:32,height:32,objectFit:"cover",borderRadius:6,flexShrink:0,border:`1px solid ${C2}`}}/>}
-                                  <div style={{fontSize:12,fontWeight:700,color:inCart?OD:T1,lineHeight:1.3,flex:1,minWidth:0}}>{c.nom}</div>
+                              <div key={c.id}
+                                style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:inCart?OL:C1,border:`1.5px solid ${inCart?O:C2}`,borderRadius:10,fontFamily:FF,transition:"all .12s"}}>
+                                <div onClick={()=>addToCart(c)} style={{cursor:"pointer",flexShrink:0}}>
+                                  {c.photo
+                                    ? <img src={c.photo} alt={c.nom} style={{width:36,height:36,objectFit:"cover",borderRadius:7,border:`1px solid ${C2}`}}/>
+                                    : <div style={{width:36,height:36,borderRadius:7,background:CAT_COLOR[cat]||C3,opacity:.18}}/>
+                                  }
                                 </div>
-                                <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
-                                  {ts&&<Badge bg={ts.bg} c={ts.c}>{c.type}</Badge>}
+                                <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>addToCart(c)}>
+                                  <div style={{fontSize:13,fontWeight:700,color:inCart?OD:T1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.nom}</div>
+                                  <div style={{display:"flex",gap:5,marginTop:2,alignItems:"center",flexWrap:"wrap"}}>
+                                    {ts&&<Badge bg={ts.bg} c={ts.c}>{c.type}</Badge>}
+                                    {c.prix>0&&<span style={{fontSize:10,fontFamily:FM,color:T4}}>{f(c.prix)}</span>}
+                                  </div>
                                 </div>
-                                {c.prix>0&&<div style={{fontSize:11,fontFamily:FM,color:T4,marginTop:1}}>{f(c.prix)}</div>}
-                                <div style={{position:"absolute",bottom:8,right:8,width:22,height:22,borderRadius:6,background:inCart?O:C3,display:"flex",alignItems:"center",justifyContent:"center",color:inCart?"#fff":T4,transition:"all .12s"}}>
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                </div>
-                              </button>
+                                {inCart ? (
+                                  <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                                    <button onClick={()=>cartDelta(inCart.id,-1)}
+                                      style={{width:26,height:26,borderRadius:7,background:C2,border:"none",cursor:"pointer",fontWeight:900,fontSize:15,display:"flex",alignItems:"center",justifyContent:"center",color:T2}}>−</button>
+                                    <input type="number" value={inCart.qty} min="1"
+                                      onChange={e=>cartSetQty(inCart.id,e.target.value)}
+                                      onClick={e=>e.target.select()}
+                                      style={{width:34,textAlign:"center",fontFamily:FM,fontWeight:800,fontSize:13,border:`1.5px solid ${O}`,borderRadius:6,padding:"3px 2px",color:OD,background:C1,outline:"none"}}/>
+                                    <button onClick={()=>cartDelta(inCart.id,1)}
+                                      style={{width:26,height:26,borderRadius:7,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:15,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}>+</button>
+                                  </div>
+                                ) : (
+                                  <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                                    {[1,5,10].map(n=>(
+                                      <button key={n} onClick={()=>addToCart(c,n)}
+                                        style={{height:26,minWidth:28,borderRadius:7,background:C3,border:`1px solid ${C2}`,cursor:"pointer",fontWeight:700,fontSize:11,fontFamily:FM,color:T2,padding:"0 6px"}}>
+                                        +{n}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             );
                           })}
                         </div>
@@ -646,49 +704,6 @@ export default function StockSection({
               })()
           }
         </div>
-
-        {/* ── Panier ── */}
-        {blLignes.length>0&&(
-          <div ref={blCartRef} style={{position:"sticky",bottom:isMob?70:16}}>
-          <Card style={{boxShadow:"0 -4px 20px rgba(0,0,0,.12)",border:`1.5px solid ${O}30`}}>
-            {/* En-tête panier : toujours visible, cliquable pour réduire/étendre */}
-            <div onClick={()=>setBlCartOpen(o=>!o)}
-              style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:blCartOpen?10:0,cursor:"pointer",userSelect:"none"}}>
-              <div style={{fontSize:12,fontWeight:800,color:T1,display:"flex",alignItems:"center",gap:6}}>
-                <span style={{background:O,color:"#fff",borderRadius:8,fontSize:10,fontWeight:900,padding:"2px 7px"}}>{blLignes.length}</span>
-                article{blLignes.length!==1?"s":""} sélectionné{blLignes.length!==1?"s":""}
-                {totalBl>0&&<span style={{fontFamily:FM,fontWeight:700,color:O,fontSize:11,marginLeft:4}}>{f(totalBl)}</span>}
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <button onClick={e=>{e.stopPropagation();setBlLignes([]);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:T5,textDecoration:"underline"}}>Vider</button>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T4} strokeWidth="2.5" style={{transform:blCartOpen?"rotate(180deg)":"none",transition:"transform .15s",flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
-            </div>
-            {/* Liste articles — hauteur limitée + scroll interne */}
-            {blCartOpen&&(
-              <div style={{maxHeight:180,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
-                {blLignes.map(l=>(
-                  <div key={l.id} ref={el=>{if(el)blItemRefs.current[l.nom]=el;}} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
-                    <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l.nom}</div>
-                      {l.prix>0&&<div style={{fontSize:10,color:T4,fontFamily:FM}}>{f(l.prix)}</div>}
-                    </div>
-                    <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                      <button onClick={()=>cartDelta(l.id,-1)} style={{width:24,height:24,borderRadius:6,background:C2,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:T2}}>−</button>
-                      <input type="number" value={l.qty} onChange={e=>cartSetQty(l.id,e.target.value)} min="1"
-                        style={{width:36,textAlign:"center",fontFamily:FM,fontWeight:800,fontSize:13,border:`1.5px solid ${C2}`,borderRadius:6,padding:"3px 4px",color:T1,background:C1,outline:"none"}}/>
-                      <button onClick={()=>cartDelta(l.id,1)} style={{width:24,height:24,borderRadius:6,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}>+</button>
-                    </div>
-                    <button onClick={()=>setBlLignes(blLignes.filter(x=>x.id!==l.id))} style={{background:RDL,border:`1px solid ${RD}20`,borderRadius:6,cursor:"pointer",color:RD,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>{Ico.close}</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <Btn onClick={validerBL} color={GR} style={{width:"100%"}}>{Ico.check} Valider la réception</Btn>
-          </Card>
-          </div>
-        )}
       </>)}
     </div>
   );
@@ -921,6 +936,48 @@ export default function StockSection({
                 </div>
             }
           </div>
+          {/* ── Panier sorties (sticky TOP) ── */}
+          {sortCart.length>0&&(
+            <div ref={sortCartRef} style={{position:"sticky",top:0,zIndex:10,marginBottom:12}}>
+            <Card style={{boxShadow:"0 4px 20px rgba(0,0,0,.12)",border:`1.5px solid ${O}30`}}>
+              <div onClick={()=>setSortCartOpen(o=>!o)}
+                style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:sortCartOpen?10:0,cursor:"pointer",userSelect:"none"}}>
+                <div style={{fontSize:12,fontWeight:800,color:T1,display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{background:O,color:"#fff",borderRadius:8,fontSize:10,fontWeight:900,padding:"2px 7px"}}>{sortCart.length}</span>
+                  article{sortCart.length!==1?"s":""} sélectionné{sortCart.length!==1?"s":""}
+                  {sortTotal>0&&<span style={{fontFamily:FM,fontWeight:700,color:O,fontSize:11,marginLeft:4}}>{f(sortTotal)}</span>}
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <button onClick={e=>{e.stopPropagation();setSortCart([]);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:T5,textDecoration:"underline"}}>Vider</button>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T4} strokeWidth="2.5" style={{transform:sortCartOpen?"rotate(180deg)":"none",transition:"transform .15s",flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              {sortCartOpen&&(
+                <div style={{maxHeight:160,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
+                  {sortCart.map(l=>(
+                    <div key={l.id} ref={el=>{if(el)sortItemRefs.current[l.nom]=el;}} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
+                      <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l.nom}</div>
+                        <div style={{fontSize:10,color:T5,fontFamily:FM}}>max {l.stock} en stock</div>
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                        <button onClick={()=>sortCartDelta(l.id,-1)} style={{width:24,height:24,borderRadius:6,background:C2,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:T2}}>−</button>
+                        <input type="number" value={l.qty} onChange={e=>sortCartSetQty(l.id,e.target.value)} min="1" max={l.stock}
+                          onClick={e=>e.target.select()}
+                          style={{width:36,textAlign:"center",fontFamily:FM,fontWeight:800,fontSize:13,border:`1.5px solid ${C2}`,borderRadius:6,padding:"3px 4px",color:T1,background:C1,outline:"none"}}/>
+                        <button onClick={()=>sortCartDelta(l.id,1)} style={{width:24,height:24,borderRadius:6,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}>+</button>
+                      </div>
+                      <button onClick={()=>setSortCart(sortCart.filter(x=>x.id!==l.id))} style={{background:RDL,border:`1px solid ${RD}20`,borderRadius:6,cursor:"pointer",color:RD,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>{Ico.close}</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Btn onClick={doSortie} disabled={!sortTech||techs.length===0} color={GR} style={{width:"100%"}}>{Ico.check} Valider la sortie</Btn>
+            </Card>
+            </div>
+          )}
+
           {/* ── Stock sélectionnable ── */}
           <div style={{marginBottom:10}}>
             <div style={{fontSize:11,fontWeight:700,color:T3,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>
@@ -1048,46 +1105,6 @@ export default function StockSection({
                 })()
             }
           </div>
-          {/* ── Panier sorties ── */}
-          {sortCart.length>0&&(
-            <div ref={sortCartRef} style={{position:"sticky",bottom:isMob?70:16}}>
-            <Card style={{boxShadow:"0 -4px 20px rgba(0,0,0,.12)",border:`1.5px solid ${O}30`}}>
-              <div onClick={()=>setSortCartOpen(o=>!o)}
-                style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:sortCartOpen?10:0,cursor:"pointer",userSelect:"none"}}>
-                <div style={{fontSize:12,fontWeight:800,color:T1,display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{background:O,color:"#fff",borderRadius:8,fontSize:10,fontWeight:900,padding:"2px 7px"}}>{sortCart.length}</span>
-                  article{sortCart.length!==1?"s":""} sélectionné{sortCart.length!==1?"s":""}
-                  {sortTotal>0&&<span style={{fontFamily:FM,fontWeight:700,color:O,fontSize:11,marginLeft:4}}>{f(sortTotal)}</span>}
-                </div>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <button onClick={e=>{e.stopPropagation();setSortCart([]);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:T5,textDecoration:"underline"}}>Vider</button>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T4} strokeWidth="2.5" style={{transform:sortCartOpen?"rotate(180deg)":"none",transition:"transform .15s",flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
-                </div>
-              </div>
-              {sortCartOpen&&(
-                <div style={{maxHeight:180,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
-                  {sortCart.map(l=>(
-                    <div key={l.id} ref={el=>{if(el)sortItemRefs.current[l.nom]=el;}} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
-                      <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:12,fontWeight:600,color:T1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l.nom}</div>
-                        <div style={{fontSize:10,color:T5,fontFamily:FM}}>max {l.stock} en stock</div>
-                      </div>
-                      <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                        <button onClick={()=>sortCartDelta(l.id,-1)} style={{width:24,height:24,borderRadius:6,background:C2,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:T2}}>−</button>
-                        <input type="number" value={l.qty} onChange={e=>sortCartSetQty(l.id,e.target.value)} min="1" max={l.stock}
-                          style={{width:36,textAlign:"center",fontFamily:FM,fontWeight:800,fontSize:13,border:`1.5px solid ${C2}`,borderRadius:6,padding:"3px 4px",color:T1,background:C1,outline:"none"}}/>
-                        <button onClick={()=>sortCartDelta(l.id,1)} style={{width:24,height:24,borderRadius:6,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}>+</button>
-                      </div>
-                      <button onClick={()=>setSortCart(sortCart.filter(x=>x.id!==l.id))} style={{background:RDL,border:`1px solid ${RD}20`,borderRadius:6,cursor:"pointer",color:RD,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>{Ico.close}</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <Btn onClick={doSortie} disabled={!sortTech||techs.length===0} color={GR} style={{width:"100%"}}>{Ico.check} Valider la sortie</Btn>
-            </Card>
-            </div>
-          )}
         </div>
       )}
 
