@@ -304,8 +304,12 @@ export default function StockSection({
   const [blCatSearch, setBlCatSearch] = useState("");
   const [blViewId,    setBlViewId]    = useState(null);
   const [blCartOpen,  setBlCartOpen]  = useState(false); // panier réduit/étendu
-  const blCartRef   = useRef(null);
-  const blItemRefs  = useRef({});
+  const blCartRef      = useRef(null);
+  const blItemRefs     = useRef({});
+  const blScrollRef    = useRef(null); // scroll interne du panier
+  useEffect(()=>{
+    if(blScrollRef.current) blScrollRef.current.scrollTop = blScrollRef.current.scrollHeight;
+  },[blLignes]);
 
   const addToCart = (c, qty=1) => {
     setBlLignes(prev => {
@@ -592,7 +596,7 @@ export default function StockSection({
               </div>
             </div>
             {blCartOpen&&(
-              <div style={{maxHeight:148,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
+              <div ref={blScrollRef} style={{maxHeight:148,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
                 {blLignes.map(l=>(
                   <div key={l.id} ref={el=>{if(el)blItemRefs.current[l.nom]=el;}} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
                     <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
@@ -703,8 +707,12 @@ export default function StockSection({
   const [sortTechOpen,  setSortTechOpen]  = useState(false);
   const [sortCart,      setSortCart]      = useState([]);
   const [sortCartOpen,  setSortCartOpen]  = useState(false);
-  const sortCartRef  = useRef(null);
-  const sortItemRefs = useRef({});
+  const sortCartRef    = useRef(null);
+  const sortItemRefs   = useRef({});
+  const sortScrollRef  = useRef(null); // scroll interne du panier sorties
+  useEffect(()=>{
+    if(sortScrollRef.current) sortScrollRef.current.scrollTop = sortScrollRef.current.scrollHeight;
+  },[sortCart]);
   const [sortStkSearch, setSortStkSearch] = useState("");
   const [sortStkCat,    setSortStkCat]    = useState(""); // filtre cat dans la sélection
   const [sortSearch,    setSortSearch]    = useState("");
@@ -936,7 +944,7 @@ export default function StockSection({
                 </div>
               </div>
               {sortCartOpen&&(
-                <div style={{maxHeight:148,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
+                <div ref={sortScrollRef} style={{maxHeight:148,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
                   {sortCart.map(l=>(
                     <div key={l.id} ref={el=>{if(el)sortItemRefs.current[l.nom]=el;}} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
                       <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
