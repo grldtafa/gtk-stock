@@ -303,7 +303,7 @@ export default function StockSection({
   const [blLignes,    setBlLignes]    = useState([]);
   const [blCatSearch, setBlCatSearch] = useState("");
   const [blViewId,    setBlViewId]    = useState(null);
-  const [blCartOpen,  setBlCartOpen]  = useState(false); // panier réduit/étendu
+  const [blCartOpen,  setBlCartOpen]  = useState(true); // panier réduit/étendu
   const blCartRef      = useRef(null);
   const blItemRefs     = useRef({});
   const blScrollRef    = useRef(null); // scroll interne du panier
@@ -706,7 +706,7 @@ export default function StockSection({
   const [sortTech,      setSortTech]      = useState("");
   const [sortTechOpen,  setSortTechOpen]  = useState(false);
   const [sortCart,      setSortCart]      = useState([]);
-  const [sortCartOpen,  setSortCartOpen]  = useState(false);
+  const [sortCartOpen,  setSortCartOpen]  = useState(true);
   const sortCartRef    = useRef(null);
   const sortItemRefs   = useRef({});
   const sortScrollRef  = useRef(null); // scroll interne du panier sorties
