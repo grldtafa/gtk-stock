@@ -304,11 +304,6 @@ export default function StockSection({
   const [blCatSearch, setBlCatSearch] = useState("");
   const [blViewId,    setBlViewId]    = useState(null);
   const [blCartOpen,  setBlCartOpen]  = useState(true); // panier réduit/étendu
-  // Sélecteur de quantité inline (partagé BL + Sorties)
-  const [pickingFor,  setPickingFor]  = useState(null); // nom article ouvert
-  const [pickQty,     setPickQty]     = useState(1);
-  const openPicker  = (nom) => { setPickingFor(nom); setPickQty(1); };
-  const closePicker = ()    => { setPickingFor(null); setPickQty(1); };
   const blCartRef   = useRef(null);
   const blItemRefs  = useRef({});
 
@@ -661,18 +656,16 @@ export default function StockSection({
                           {groups[cat].map(c=>{
                             const inCart=blLignes.find(l=>l.nom===c.nom);
                             const ts=c.type?TYPE_STYLE[c.type]:null;
-                            const isOpen=pickingFor===c.nom;
                             return (
-                              <div key={c.id} style={{background:inCart?OL:C1,border:`1.5px solid ${isOpen?O:inCart?O:C2}`,borderRadius:10,fontFamily:FF,transition:"all .12s",overflow:"hidden"}}>
-                                {/* Ligne principale */}
+                              <div key={c.id} style={{background:inCart?OL:C1,border:`1.5px solid ${inCart?O:C2}`,borderRadius:10,fontFamily:FF,transition:"all .12s"}}>
                                 <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px"}}>
-                                  <div style={{cursor:"pointer",flexShrink:0}} onClick={()=>inCart?null:openPicker(c.nom)}>
+                                  <div style={{flexShrink:0}}>
                                     {c.photo
                                       ? <img src={c.photo} alt={c.nom} style={{width:36,height:36,objectFit:"cover",borderRadius:7,border:`1px solid ${C2}`}}/>
                                       : <div style={{width:36,height:36,borderRadius:7,background:CAT_COLOR[cat]||C3,opacity:.18}}/>
                                     }
                                   </div>
-                                  <div style={{flex:1,minWidth:0,cursor:inCart?"default":"pointer"}} onClick={()=>!inCart&&openPicker(c.nom)}>
+                                  <div style={{flex:1,minWidth:0}}>
                                     <div style={{fontSize:13,fontWeight:700,color:inCart?OD:T1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.nom}</div>
                                     <div style={{display:"flex",gap:5,marginTop:2,alignItems:"center",flexWrap:"wrap"}}>
                                       {ts&&<Badge bg={ts.bg} c={ts.c}>{c.type}</Badge>}
@@ -687,40 +680,12 @@ export default function StockSection({
                                       <button onClick={()=>cartDelta(inCart.id,1)} style={{width:30,height:30,borderRadius:7,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}>+</button>
                                     </div>
                                   ) : (
-                                    <button onClick={()=>isOpen?closePicker():openPicker(c.nom)}
-                                      style={{width:32,height:32,borderRadius:8,background:isOpen?C2:O,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",flexShrink:0}}>
-                                      {isOpen
-                                        ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T3} strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                        : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                      }
+                                    <button onClick={()=>addToCart(c,1)}
+                                      style={{width:32,height:32,borderRadius:8,background:O,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",flexShrink:0}}>
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                                     </button>
                                   )}
                                 </div>
-                                {/* Sélecteur quantité inline */}
-                                {isOpen&&(
-                                  <div style={{padding:"10px 12px 12px",borderTop:`1px solid ${C2}`,background:OL}}>
-                                    <div style={{display:"flex",gap:6,marginBottom:10}}>
-                                      {[1,2,5,10,20].map(n=>(
-                                        <button key={n} onClick={()=>setPickQty(n)}
-                                          style={{flex:1,padding:"8px 4px",borderRadius:8,background:pickQty===n?O:C1,color:pickQty===n?"#fff":T2,border:`1.5px solid ${pickQty===n?O:C2}`,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:FM}}>
-                                          {n}
-                                        </button>
-                                      ))}
-                                    </div>
-                                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
-                                      <button onClick={()=>setPickQty(q=>Math.max(1,q-1))}
-                                        style={{width:44,height:44,borderRadius:10,background:C2,border:"none",cursor:"pointer",fontWeight:900,fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",color:T1,flexShrink:0}}>−</button>
-                                      <input type="number" value={pickQty} min="1" onChange={e=>setPickQty(Math.max(1,parseInt(e.target.value)||1))} onClick={e=>e.target.select()}
-                                        style={{flex:1,textAlign:"center",fontSize:22,fontWeight:900,fontFamily:FM,border:`2px solid ${O}`,borderRadius:10,padding:"8px",color:T1,background:C1,outline:"none"}}/>
-                                      <button onClick={()=>setPickQty(q=>q+1)}
-                                        style={{width:44,height:44,borderRadius:10,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",flexShrink:0}}>+</button>
-                                    </div>
-                                    <button onClick={()=>{addToCart(c,pickQty);closePicker();}}
-                                      style={{width:"100%",padding:"11px",background:GR,border:"none",borderRadius:10,fontSize:14,fontWeight:800,color:"#fff",cursor:"pointer",fontFamily:FF}}>
-                                      Ajouter {pickQty} au panier
-                                    </button>
-                                  </div>
-                                )}
                               </div>
                             );
                           })}
@@ -1080,18 +1045,16 @@ export default function StockSection({
                               const remaining=(a.qty||0)-(inCart?.qty||0);
                               const photo=catalogue.find(c=>c.nom===a.nom)?.photo||"";
                               const ts=a.type?TYPE_STYLE[a.type]:null;
-                              const isOpen=pickingFor===a.nom;
                               return (
-                                <div key={a.id||a.nom} style={{background:inCart?OL:C1,border:`1.5px solid ${isOpen?O:inCart?O:C2}`,borderRadius:10,fontFamily:FF,transition:"all .12s",overflow:"hidden",opacity:remaining<=0&&!inCart?.45:1}}>
-                                  {/* Ligne principale */}
+                                <div key={a.id||a.nom} style={{background:inCart?OL:C1,border:`1.5px solid ${inCart?O:C2}`,borderRadius:10,fontFamily:FF,transition:"all .12s",opacity:remaining<=0&&!inCart?.45:1}}>
                                   <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px"}}>
-                                    <div style={{cursor:remaining>0?"pointer":"default",flexShrink:0}} onClick={()=>remaining>0&&!inCart&&openPicker(a.nom)}>
+                                    <div style={{flexShrink:0}}>
                                       {photo
                                         ? <img src={photo} alt={a.nom} style={{width:36,height:36,objectFit:"cover",borderRadius:7,border:`1px solid ${C2}`}}/>
                                         : <div style={{width:36,height:36,borderRadius:7,background:CC[cat]||C3,opacity:.18}}/>
                                       }
                                     </div>
-                                    <div style={{flex:1,minWidth:0,cursor:remaining>0&&!inCart?"pointer":"default"}} onClick={()=>remaining>0&&!inCart&&openPicker(a.nom)}>
+                                    <div style={{flex:1,minWidth:0}}>
                                       <div style={{fontSize:13,fontWeight:700,color:inCart?OD:T1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.nom}</div>
                                       <div style={{display:"flex",gap:5,marginTop:2,alignItems:"center",flexWrap:"wrap"}}>
                                         {ts&&<Badge bg={ts.bg} c={ts.c}>{a.type}</Badge>}
@@ -1106,40 +1069,12 @@ export default function StockSection({
                                         <button onClick={()=>remaining>0&&sortCartDelta(inCart.id,1)} style={{width:30,height:30,borderRadius:7,background:O,border:"none",cursor:remaining>0?"pointer":"not-allowed",fontWeight:900,fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",opacity:remaining>0?1:.4}}>+</button>
                                       </div>
                                     ) : (
-                                      <button onClick={()=>remaining>0&&(isOpen?closePicker():openPicker(a.nom))} disabled={remaining<=0}
-                                        style={{width:32,height:32,borderRadius:8,background:isOpen?C2:O,border:"none",cursor:remaining>0?"pointer":"not-allowed",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,opacity:remaining>0?1:.4}}>
-                                        {isOpen
-                                          ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T3} strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                          : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                        }
+                                      <button onClick={()=>remaining>0&&addToSortCart(a,1)} disabled={remaining<=0}
+                                        style={{width:32,height:32,borderRadius:8,background:O,border:"none",cursor:remaining>0?"pointer":"not-allowed",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,opacity:remaining>0?1:.4}}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                                       </button>
                                     )}
                                   </div>
-                                  {/* Sélecteur quantité inline */}
-                                  {isOpen&&(
-                                    <div style={{padding:"10px 12px 12px",borderTop:`1px solid ${C2}`,background:OL}}>
-                                      <div style={{display:"flex",gap:6,marginBottom:10}}>
-                                        {[1,2,5,10,20].map(n=>(
-                                          <button key={n} onClick={()=>setPickQty(n)}
-                                            style={{flex:1,padding:"8px 4px",borderRadius:8,background:pickQty===n?O:C1,color:pickQty===n?"#fff":T2,border:`1.5px solid ${pickQty===n?O:C2}`,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:FM}}>
-                                            {n}
-                                          </button>
-                                        ))}
-                                      </div>
-                                      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
-                                        <button onClick={()=>setPickQty(q=>Math.max(1,q-1))}
-                                          style={{width:44,height:44,borderRadius:10,background:C2,border:"none",cursor:"pointer",fontWeight:900,fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",color:T1,flexShrink:0}}>−</button>
-                                        <input type="number" value={pickQty} min="1" onChange={e=>setPickQty(Math.max(1,parseInt(e.target.value)||1))} onClick={e=>e.target.select()}
-                                          style={{flex:1,textAlign:"center",fontSize:22,fontWeight:900,fontFamily:FM,border:`2px solid ${O}`,borderRadius:10,padding:"8px",color:T1,background:C1,outline:"none"}}/>
-                                        <button onClick={()=>setPickQty(q=>Math.min(q+1,remaining))}
-                                          style={{width:44,height:44,borderRadius:10,background:O,border:"none",cursor:"pointer",fontWeight:900,fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",flexShrink:0}}>+</button>
-                                      </div>
-                                      <button onClick={()=>{addToSortCart(a,pickQty);closePicker();}}
-                                        style={{width:"100%",padding:"11px",background:GR,border:"none",borderRadius:10,fontSize:14,fontWeight:800,color:"#fff",cursor:"pointer",fontFamily:FF}}>
-                                        Ajouter {pickQty} au panier
-                                      </button>
-                                    </div>
-                                  )}
                                 </div>
                               );
                             })}
