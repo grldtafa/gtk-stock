@@ -703,9 +703,11 @@ export default function StockSection({
   const sortCartRef  = useRef(null);
   const sortItemRefs = useRef({});
   const [sortStkSearch, setSortStkSearch] = useState("");
+  const [sortStkCat,    setSortStkCat]    = useState(""); // filtre cat dans la sélection
   const [sortSearch,    setSortSearch]    = useState("");
   const [sortHistTech,  setSortHistTech]  = useState("");
   const [sortHistMonth, setSortHistMonth] = useState("");
+  const [sortHistCat,   setSortHistCat]   = useState(""); // filtre cat dans l'historique
   const [showForm,      setShowForm]      = useState(false);
   // Modal impression sorties
   const [printModal,    setPrintModal]    = useState(false);
@@ -845,7 +847,8 @@ export default function StockSection({
     const matchSearch=!sortSearch||s.nom?.toLowerCase().includes(sortSearch.toLowerCase())||s.techNom?.toLowerCase().includes(sortSearch.toLowerCase());
     const matchTech=!sortHistTech||s.techId===sortHistTech;
     const matchMonth=!sortHistMonth||(s.ym||s.date?.slice(0,7))===sortHistMonth;
-    return matchSearch&&matchTech&&matchMonth;
+    const matchCat=!sortHistCat||s.cat===sortHistCat;
+    return matchSearch&&matchTech&&matchMonth&&matchCat;
   });
 
   // Grouper par mois
@@ -922,47 +925,102 @@ export default function StockSection({
             <div style={{fontSize:11,fontWeight:700,color:T3,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>
               Stock disponible · {stk.filter(a=>(a.qty||0)>0).length} article{stk.filter(a=>(a.qty||0)>0).length!==1?"s":""}
             </div>
-            <div style={{position:"relative",marginBottom:10}}>
+            {/* Recherche */}
+            <div style={{position:"relative",marginBottom:8}}>
               <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:T5}}>{Ico.search}</span>
               <input value={sortStkSearch} onChange={e=>setSortStkSearch(e.target.value)} placeholder="Filtrer le stock…"
                 style={{background:C1,border:`1.5px solid ${C2}`,borderRadius:8,padding:"9px 12px 9px 34px",fontSize:13,color:T1,fontFamily:FF,outline:"none",width:"100%",boxSizing:"border-box"}}/>
             </div>
-            {stk.filter(a=>(a.qty||0)>0).length===0
-              ? <Card style={{textAlign:"center",padding:"32px",color:T4,fontSize:13}}>Aucun article disponible en stock</Card>
-              : <div style={{display:"grid",gridTemplateColumns:isMob?"1fr 1fr":"repeat(3,1fr)",gap:8}}>
-                  {stk
-                    .filter(a=>(a.qty||0)>0)
-                    .filter(a=>!sortStkSearch||a.nom.toLowerCase().includes(sortStkSearch.toLowerCase())||a.cat?.toLowerCase().includes(sortStkSearch.toLowerCase()))
-                    .map(a=>{
-                      const inCart=sortCart.find(l=>l.nom===a.nom);
-                      const ts=a.type?TYPE_STYLE[a.type]:null;
-                      const remaining=(a.qty||0)-(inCart?.qty||0);
-                      const photo=catalogue.find(c=>c.nom===a.nom)?.photo||"";
+            {/* Pills catégorie */}
+            {(()=>{
+              const ORDER_C=["Fibre D3","Fibre D2","ADSL","Outils"];
+              const CC={"Fibre D3":"#0ea5e9","Fibre D2":"#8b5cf6","ADSL":"#16a34a","Outils":"#d97706"};
+              const cats=[...new Set(stk.filter(a=>(a.qty||0)>0).map(a=>a.cat).filter(Boolean))].sort((a,b)=>{
+                const ia=ORDER_C.indexOf(a),ib=ORDER_C.indexOf(b);
+                if(ia!==-1&&ib!==-1) return ia-ib;
+                if(ia!==-1) return -1; if(ib!==-1) return 1;
+                return a.localeCompare(b,"fr");
+              });
+              if(cats.length===0) return null;
+              return (
+                <div style={{overflowX:"auto",marginBottom:10,paddingBottom:2,WebkitOverflowScrolling:"touch"}}>
+                  <div style={{display:"flex",gap:5,minWidth:"max-content"}}>
+                    <button onClick={()=>setSortStkCat("")}
+                      style={{border:"none",borderRadius:20,padding:"4px 11px",fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",background:sortStkCat===""?T2:C2,color:sortStkCat===""?"#fff":T4}}>
+                      Tout
+                    </button>
+                    {cats.map(cat=>{
+                      const col=CC[cat]||T3;
+                      const active=sortStkCat===cat;
                       return (
-                        <button key={a.id||a.nom} onClick={()=>addToSortCart(a)} style={{
-                          background:inCart?OL:C1,border:`1.5px solid ${inCart?O:C2}`,borderRadius:10,
-                          padding:"10px 12px",textAlign:"left",cursor:"pointer",fontFamily:FF,
-                          display:"flex",flexDirection:"column",gap:5,position:"relative",
-                          transition:"all .12s",boxShadow:inCart?`0 0 0 1px ${O}30`:SH,
-                          opacity:remaining<=0?0.45:1
-                        }}>
-                          {inCart&&<span style={{position:"absolute",top:-6,right:-6,background:O,color:"#fff",borderRadius:10,fontSize:10,fontWeight:900,padding:"2px 6px",minWidth:20,textAlign:"center"}}>{inCart.qty}</span>}
-                          <div style={{display:"flex",alignItems:"center",gap:7}}>
-                            {photo&&<img src={photo} alt={a.nom} style={{width:32,height:32,objectFit:"cover",borderRadius:6,flexShrink:0,border:`1px solid ${C2}`}}/>}
-                            <div style={{fontSize:12,fontWeight:700,color:inCart?OD:T1,lineHeight:1.3,flex:1,minWidth:0,paddingRight:12}}>{a.nom}</div>
-                          </div>
-                          <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
-                            {a.cat&&<Badge bg={inCart?O+"20":OL} c={inCart?OD:O}>{a.cat}</Badge>}
-                            {ts&&<Badge bg={ts.bg} c={ts.c}>{a.type}</Badge>}
-                          </div>
-                          <div style={{fontSize:10,fontFamily:FM,fontWeight:700,marginTop:1,color:remaining>5?GR:remaining>2?OD:RD}}>{remaining} dispo</div>
-                          <div style={{position:"absolute",bottom:8,right:8,width:22,height:22,borderRadius:6,background:inCart?O:C3,display:"flex",alignItems:"center",justifyContent:"center",color:inCart?"#fff":T4,transition:"all .12s"}}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                          </div>
+                        <button key={cat} onClick={()=>setSortStkCat(active?"":cat)}
+                          style={{border:`1.5px solid ${active?col:C2}`,borderRadius:20,padding:"4px 11px",fontSize:11,fontWeight:active?700:500,cursor:"pointer",whiteSpace:"nowrap",background:active?col:C1,color:active?"#fff":col}}>
+                          {cat}
                         </button>
                       );
                     })}
+                  </div>
                 </div>
+              );
+            })()}
+            {/* Liste des articles groupée par catégorie */}
+            {stk.filter(a=>(a.qty||0)>0).length===0
+              ? <Card style={{textAlign:"center",padding:"32px",color:T4,fontSize:13}}>Aucun article disponible en stock</Card>
+              : (()=>{
+                  const ORDER_C=["Fibre D3","Fibre D2","ADSL","Outils"];
+                  const CC={"Fibre D3":"#0ea5e9","Fibre D2":"#8b5cf6","ADSL":"#16a34a","Outils":"#d97706"};
+                  const filtered=stk
+                    .filter(a=>(a.qty||0)>0)
+                    .filter(a=>!sortStkSearch||a.nom.toLowerCase().includes(sortStkSearch.toLowerCase())||a.cat?.toLowerCase().includes(sortStkSearch.toLowerCase()))
+                    .filter(a=>!sortStkCat||a.cat===sortStkCat);
+                  if(filtered.length===0) return <div style={{textAlign:"center",color:T5,fontSize:12,padding:"20px 0"}}>Aucun article pour ce filtre</div>;
+                  const groups={};
+                  filtered.forEach(a=>{const k=a.cat||"Autre";if(!groups[k])groups[k]=[];groups[k].push(a);});
+                  const keys=[...ORDER_C.filter(k=>groups[k]),...Object.keys(groups).filter(k=>!ORDER_C.includes(k)&&groups[k])];
+                  return (
+                    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                      {keys.map(cat=>(
+                        <div key={cat}>
+                          {/* Header catégorie */}
+                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                            <div style={{width:3,height:14,borderRadius:2,background:CC[cat]||T4,flexShrink:0}}/>
+                            <span style={{fontSize:10,fontWeight:800,color:CC[cat]||T4,textTransform:"uppercase",letterSpacing:1}}>{cat}</span>
+                            <div style={{flex:1,height:1,background:CC[cat]||C2,opacity:.15}}/>
+                          </div>
+                          {/* Lignes */}
+                          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                            {groups[cat].map(a=>{
+                              const inCart=sortCart.find(l=>l.nom===a.nom);
+                              const remaining=(a.qty||0)-(inCart?.qty||0);
+                              const photo=catalogue.find(c=>c.nom===a.nom)?.photo||"";
+                              const ts=a.type?TYPE_STYLE[a.type]:null;
+                              return (
+                                <button key={a.id||a.nom} onClick={()=>addToSortCart(a)}
+                                  style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:inCart?OL:C1,border:`1.5px solid ${inCart?O:C2}`,borderRadius:10,cursor:"pointer",fontFamily:FF,textAlign:"left",transition:"all .12s",opacity:remaining<=0?.45:1}}>
+                                  {photo
+                                    ? <img src={photo} alt={a.nom} style={{width:36,height:36,objectFit:"cover",borderRadius:7,flexShrink:0,border:`1px solid ${C2}`}}/>
+                                    : <div style={{width:36,height:36,borderRadius:7,background:CC[cat]||C3,flexShrink:0,opacity:.18}}/>
+                                  }
+                                  <div style={{flex:1,minWidth:0}}>
+                                    <div style={{fontSize:13,fontWeight:700,color:inCart?OD:T1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.nom}</div>
+                                    <div style={{display:"flex",gap:5,marginTop:2,alignItems:"center",flexWrap:"wrap"}}>
+                                      {ts&&<Badge bg={ts.bg} c={ts.c}>{a.type}</Badge>}
+                                      <span style={{fontSize:10,fontFamily:FM,fontWeight:700,color:remaining>5?GR:remaining>2?OD:RD}}>{remaining} dispo</span>
+                                    </div>
+                                  </div>
+                                  {inCart&&<span style={{background:O,color:"#fff",borderRadius:10,fontSize:11,fontWeight:900,padding:"2px 8px",flexShrink:0}}>{inCart.qty}</span>}
+                                  <div style={{width:28,height:28,borderRadius:7,background:inCart?O:C3,display:"flex",alignItems:"center",justifyContent:"center",color:inCart?"#fff":T4,flexShrink:0,transition:"all .12s"}}>
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()
             }
           </div>
           {/* ── Panier sorties ── */}
@@ -1019,8 +1077,8 @@ export default function StockSection({
         ],"historique-sorties")}>{Ico.csv}{!isMob&&" Export CSV"}</Btn>}
       </div>
 
-      {/* Filtres */}
-      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+      {/* Filtres — ligne 1 : recherche + tech + mois + imprimer */}
+      <div style={{display:"flex",gap:8,marginBottom:8,flexWrap:"wrap"}}>
         <div style={{flex:1,minWidth:140,position:"relative"}}>
           <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:T5}}>{Ico.search}</span>
           <input value={sortSearch} onChange={e=>setSortSearch(e.target.value)} placeholder="Rechercher un article…"
@@ -1048,6 +1106,38 @@ export default function StockSection({
           </button>
         )}
       </div>
+      {/* Filtres — ligne 2 : catégories (pills) */}
+      {(()=>{
+        const ORDER_CAT=["Fibre D3","Fibre D2","ADSL","Outils"];
+        const CAT_COLOR_H={"Fibre D3":"#0ea5e9","Fibre D2":"#8b5cf6","ADSL":"#16a34a","Outils":"#d97706"};
+        const histCats=[...new Set(stkOut.map(s=>s.cat).filter(Boolean))].sort((a,b)=>{
+          const ia=ORDER_CAT.indexOf(a), ib=ORDER_CAT.indexOf(b);
+          if(ia!==-1&&ib!==-1) return ia-ib;
+          if(ia!==-1) return -1; if(ib!==-1) return 1;
+          return a.localeCompare(b,"fr");
+        });
+        if(histCats.length===0) return null;
+        return (
+          <div style={{overflowX:"auto",marginBottom:12,paddingBottom:2,WebkitOverflowScrolling:"touch"}}>
+            <div style={{display:"flex",gap:6,minWidth:"max-content"}}>
+              <button onClick={()=>setSortHistCat("")}
+                style={{border:"none",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",background:sortHistCat===""?T2:C2,color:sortHistCat===""?"#fff":T4,transition:"all .12s"}}>
+                Toutes catégories
+              </button>
+              {histCats.map(cat=>{
+                const col=CAT_COLOR_H[cat]||T3;
+                const active=sortHistCat===cat;
+                return (
+                  <button key={cat} onClick={()=>setSortHistCat(cat===sortHistCat?"":cat)}
+                    style={{border:`1.5px solid ${active?col:C2}`,borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:active?700:500,cursor:"pointer",whiteSpace:"nowrap",background:active?col:C1,color:active?"#fff":col,transition:"all .12s"}}>
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {filtOut.length===0
         ? <Card style={{textAlign:"center",padding:"40px 20px"}}>
