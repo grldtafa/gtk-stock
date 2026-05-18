@@ -715,15 +715,16 @@ export default function StockSection({
   const [pmMonth,       setPmMonth]       = useState("");
   const [pmMode,        setPmMode]        = useState("detail");
 
-  const addToSortCart = (art) => {
+  const addToSortCart = (art, qty=1) => {
     const inCart = sortCart.find(l=>l.nom===art.nom);
     const dispo = (art.qty||0) - (inCart?.qty||0);
     if(dispo<=0){ onToast(`Stock épuisé pour ${art.nom}`,"warn"); return; }
+    const toAdd = Math.min(qty, dispo);
     setSortCartOpen(true);
     setSortCart(prev=>{
       const ex=prev.find(l=>l.nom===art.nom);
-      if(ex) return prev.map(l=>l.nom===art.nom?{...l,qty:Math.min(l.qty+1,art.qty||0)}:l);
-      return [...prev,{id:Date.now()+Math.random(),nom:art.nom,cat:art.cat||"",type:art.type||"",qty:1,prix:art.prix||0,stock:art.qty||0}];
+      if(ex) return prev.map(l=>l.nom===art.nom?{...l,qty:Math.min(l.qty+toAdd,art.qty||0)}:l);
+      return [...prev,{id:Date.now()+Math.random(),nom:art.nom,cat:art.cat||"",type:art.type||"",qty:toAdd,prix:art.prix||0,stock:art.qty||0}];
     });
     setTimeout(()=>{
       sortCartRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"});
@@ -995,24 +996,48 @@ export default function StockSection({
                               const photo=catalogue.find(c=>c.nom===a.nom)?.photo||"";
                               const ts=a.type?TYPE_STYLE[a.type]:null;
                               return (
-                                <button key={a.id||a.nom} onClick={()=>addToSortCart(a)}
-                                  style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:inCart?OL:C1,border:`1.5px solid ${inCart?O:C2}`,borderRadius:10,cursor:"pointer",fontFamily:FF,textAlign:"left",transition:"all .12s",opacity:remaining<=0?.45:1}}>
-                                  {photo
-                                    ? <img src={photo} alt={a.nom} style={{width:36,height:36,objectFit:"cover",borderRadius:7,flexShrink:0,border:`1px solid ${C2}`}}/>
-                                    : <div style={{width:36,height:36,borderRadius:7,background:CC[cat]||C3,flexShrink:0,opacity:.18}}/>
-                                  }
-                                  <div style={{flex:1,minWidth:0}}>
+                                <div key={a.id||a.nom}
+                                  style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:inCart?OL:C1,border:`1.5px solid ${inCart?O:C2}`,borderRadius:10,fontFamily:FF,transition:"all .12s",opacity:remaining<=0?.45:1}}>
+                                  {/* Photo — clic = +1 */}
+                                  <div onClick={()=>remaining>0&&addToSortCart(a)} style={{cursor:remaining>0?"pointer":"default",flexShrink:0}}>
+                                    {photo
+                                      ? <img src={photo} alt={a.nom} style={{width:36,height:36,objectFit:"cover",borderRadius:7,border:`1px solid ${C2}`}}/>
+                                      : <div style={{width:36,height:36,borderRadius:7,background:CC[cat]||C3,opacity:.18}}/>
+                                    }
+                                  </div>
+                                  {/* Nom + badges — clic = +1 */}
+                                  <div style={{flex:1,minWidth:0,cursor:remaining>0?"pointer":"default"}} onClick={()=>remaining>0&&addToSortCart(a)}>
                                     <div style={{fontSize:13,fontWeight:700,color:inCart?OD:T1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.nom}</div>
                                     <div style={{display:"flex",gap:5,marginTop:2,alignItems:"center",flexWrap:"wrap"}}>
                                       {ts&&<Badge bg={ts.bg} c={ts.c}>{a.type}</Badge>}
                                       <span style={{fontSize:10,fontFamily:FM,fontWeight:700,color:remaining>5?GR:remaining>2?OD:RD}}>{remaining} dispo</span>
                                     </div>
                                   </div>
-                                  {inCart&&<span style={{background:O,color:"#fff",borderRadius:10,fontSize:11,fontWeight:900,padding:"2px 8px",flexShrink:0}}>{inCart.qty}</span>}
-                                  <div style={{width:28,height:28,borderRadius:7,background:inCart?O:C3,display:"flex",alignItems:"center",justifyContent:"center",color:inCart?"#fff":T4,flexShrink:0,transition:"all .12s"}}>
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                  </div>
-                                </button>
+                                  {/* Contrôles droite */}
+                                  {inCart ? (
+                                    // Déjà dans le panier → − qty + directement
+                                    <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                                      <button onClick={()=>sortCartDelta(inCart.id,-1)}
+                                        style={{width:26,height:26,borderRadius:7,background:C2,border:"none",cursor:"pointer",fontWeight:900,fontSize:15,display:"flex",alignItems:"center",justifyContent:"center",color:T2}}>−</button>
+                                      <input type="number" value={inCart.qty} min="1" max={inCart.stock}
+                                        onChange={e=>sortCartSetQty(inCart.id,e.target.value)}
+                                        onClick={e=>e.target.select()}
+                                        style={{width:34,textAlign:"center",fontFamily:FM,fontWeight:800,fontSize:13,border:`1.5px solid ${O}`,borderRadius:6,padding:"3px 2px",color:OD,background:C1,outline:"none"}}/>
+                                      <button onClick={()=>remaining>0&&sortCartDelta(inCart.id,1)}
+                                        style={{width:26,height:26,borderRadius:7,background:O,border:"none",cursor:remaining>0?"pointer":"not-allowed",fontWeight:900,fontSize:15,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",opacity:remaining>0?1:.4}}>+</button>
+                                    </div>
+                                  ) : (
+                                    // Pas encore dans le panier → raccourcis +1 +5 +10
+                                    <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                                      {[1,5,10].map(n=>(
+                                        <button key={n} onClick={()=>addToSortCart(a,n)}
+                                          style={{height:26,minWidth:28,borderRadius:7,background:C3,border:`1px solid ${C2}`,cursor:remaining>0?"pointer":"not-allowed",fontWeight:700,fontSize:11,fontFamily:FM,color:T2,padding:"0 6px",opacity:remaining>0?1:.4}}>
+                                          +{n}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               );
                             })}
                           </div>
