@@ -592,7 +592,7 @@ export default function StockSection({
               </div>
             </div>
             {blCartOpen&&(
-              <div style={{maxHeight:160,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
+              <div style={{maxHeight:148,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
                 {blLignes.map(l=>(
                   <div key={l.id} ref={el=>{if(el)blItemRefs.current[l.nom]=el;}} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
                     <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
@@ -936,7 +936,7 @@ export default function StockSection({
                 </div>
               </div>
               {sortCartOpen&&(
-                <div style={{maxHeight:160,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
+                <div style={{maxHeight:148,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:10,paddingRight:2}}>
                   {sortCart.map(l=>(
                     <div key={l.id} ref={el=>{if(el)sortItemRefs.current[l.nom]=el;}} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:C3,borderRadius:8,flexShrink:0}}>
                       <div style={{width:3,height:32,borderRadius:2,flexShrink:0,background:l.type==="Consommable"?BL:l.type==="Outillage"?PU:C2}}/>
