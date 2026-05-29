@@ -91,9 +91,10 @@ const NC_STATUTS = [
   { id: "resolu",    label: "Résolu",    color: GR, bg: GRL },
 ];
 
-const fmtDate  = d => { if (!d) return ""; const p = d.split("-"); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d; };
-const todayStr = () => new Date().toISOString().slice(0, 10);
-const genId    = () => `ctr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+const fmtDate      = d => { if (!d) return ""; const p = d.split("-"); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d; };
+const todayStr     = () => new Date().toISOString().slice(0, 10);
+const genId        = () => `ctr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+const techFullName = t => t ? (`${t.prenom || ""} ${t.nom || ""}`.trim() || t.n || t.name || "") : "";
 
 // ─── Icônes ───
 const IcoSvg = (paths, size = 18) => (
@@ -408,7 +409,7 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
                 ? <select value={ctrlTech} onChange={e => setCtrlTech(e.target.value)} style={{ ...sInp, cursor: "pointer" }}
                     onFocus={e => e.target.style.borderColor = O} onBlur={e => e.target.style.borderColor = C2}>
                     <option value="">— Sélectionner —</option>
-                    {techs.map(t => <option key={t.id} value={t.nom || t.name}>{t.nom || t.name}</option>)}
+                    {techs.map(t => <option key={t.id} value={techFullName(t)}>{techFullName(t)}</option>)}
                   </select>
                 : <input value={ctrlTech} onChange={e => setCtrlTech(e.target.value)} placeholder="Nom du technicien" style={sInp}
                     onFocus={e => e.target.style.borderColor = O} onBlur={e => e.target.style.borderColor = C2} />
