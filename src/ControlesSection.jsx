@@ -456,17 +456,15 @@ ${sectionsHTML}
   // ════════════════════════════════════════
   const printListePreparation = () => {
     const logoUrl = `${window.location.origin}/LOGO.png`;
+    const totalPts = checklistData.reduce((a, s) => a + s.items.length, 0);
 
-    // 2 colonnes : sections gauche / sections droite
-    const mid = Math.ceil(checklistData.length / 2);
-    const colHTML = (sections) => sections.map(section => {
+    const sectionsHTML = checklistData.map(section => {
       const rows = section.items.map(item =>
         `<div class="item"><div class="dot"></div><span>${item}</span></div>`
       ).join("");
       return `<div class="section">
-        <div class="sec-head">
-          ${section.section}<span class="pts">${section.items.length} pts</span>
-        </div>${rows}
+        <div class="sec-head">${section.section}<span class="pts">${section.items.length} pts</span></div>
+        ${rows}
       </div>`;
     }).join("");
 
@@ -474,45 +472,40 @@ ${sectionsHTML}
 <title>Fiche de préparation — GTK Réseaux</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%}
-body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;
-  display:flex;flex-direction:column;padding:14px 20px}
-.header{display:flex;align-items:center;gap:14px;padding-bottom:10px;
-  border-bottom:3px solid #FC7701;margin-bottom:10px;flex-shrink:0}
-.logo{height:36px;object-fit:contain}
-.htitle{font-size:16px;font-weight:900;color:#0f172a}
-.hsub{font-size:10px;color:#64748b;margin-top:2px}
-.notice{background:#FFF4EA;border:1.5px solid #FC770150;border-radius:6px;
-  padding:7px 12px;font-size:10px;color:#92400e;margin-bottom:10px;flex-shrink:0;line-height:1.5}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1}
-.section{margin-bottom:8px}
+body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;padding:12px 18px}
+.header{display:flex;align-items:center;gap:14px;padding-bottom:9px;
+  border-bottom:3px solid #FC7701;margin-bottom:9px}
+.logo{height:34px;object-fit:contain}
+.htitle{font-size:15px;font-weight:900;color:#0f172a}
+.hsub{font-size:9.5px;color:#64748b;margin-top:2px}
+.notice{background:#FFF4EA;border:1.5px solid #FC770155;border-radius:6px;
+  padding:6px 11px;font-size:9.5px;color:#92400e;margin-bottom:9px;line-height:1.5}
+.cols{columns:2;column-gap:14px;column-fill:balance}
+.section{break-inside:avoid;-webkit-column-break-inside:avoid;
+  page-break-inside:avoid;display:inline-block;width:100%;margin-bottom:8px}
 .sec-head{display:flex;align-items:center;justify-content:space-between;
-  padding:5px 9px;border-radius:4px;font-size:10px;font-weight:800;color:#fff;margin-bottom:4px;
+  padding:5px 9px;border-radius:4px;font-size:10px;font-weight:800;color:#fff;margin-bottom:3px;
   background:#FC7701}
 .pts{font-size:8px;opacity:.85}
-.item{display:flex;align-items:baseline;gap:7px;padding:3px 8px;font-size:10px;
-  color:#0f172a;border-bottom:1px solid #f1f5f9;line-height:1.4}
-.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:3px;background:#FC7701}
-.footer{text-align:center;font-size:8px;color:#94a3b8;padding-top:8px;
-  border-top:1px solid #e8edf3;margin-top:8px;flex-shrink:0}
+.item{display:flex;align-items:baseline;gap:6px;padding:2px 7px;font-size:9.5px;
+  color:#0f172a;border-bottom:1px solid #f1f5f9;line-height:1.45}
+.dot{width:4px;height:4px;border-radius:50%;flex-shrink:0;margin-top:4px;background:#FC7701}
+.footer{text-align:center;font-size:8px;color:#94a3b8;padding-top:7px;
+  border-top:1px solid #e8edf3;margin-top:8px}
 @media print{
-  html,body{height:auto}
   body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  @page{margin:1cm;size:A4}
+  @page{margin:.8cm;size:A4}
 }
 </style></head><body>
 <div class="header">
   <img src="${logoUrl}" class="logo" alt="GTK" onerror="this.style.display='none'"/>
   <div>
     <div class="htitle">Liste de préparation au contrôle technicien</div>
-    <div class="hsub">GTK Réseaux · ${checklistData.reduce((a,s)=>a+s.items.length,0)} points de contrôle obligatoires</div>
+    <div class="hsub">GTK Réseaux · ${totalPts} points de contrôle obligatoires</div>
   </div>
 </div>
 <div class="notice">⚠️ <strong>Tous ces équipements doivent être présents, fonctionnels et en bon état dans le véhicule le jour du contrôle.</strong> Tout élément manquant ou non conforme entraînera une reconvocation sous 7 jours ainsi qu'une pénalité de <strong>200 € par élément manquant</strong>.</div>
-<div class="cols">
-  <div>${colHTML(checklistData.slice(0, mid))}</div>
-  <div>${colHTML(checklistData.slice(mid))}</div>
-</div>
+<div class="cols">${sectionsHTML}</div>
 <div class="footer">GTK Réseaux · Document de préparation au contrôle technicien · gtk-stock.vercel.app</div>
 </body></html>`;
 
