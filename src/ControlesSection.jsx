@@ -405,9 +405,12 @@ ${sectionsHTML}
     const EJS_SVC = import.meta.env.VITE_EMAILJS_SERVICE_ID;
     const EJS_TPL = import.meta.env.VITE_EMAILJS_CONTROLE_TPL;
     const EJS_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
-    if (!EJS_SVC || !EJS_TPL || !EJS_KEY) return; // non configuré → silencieux
+    if (!EJS_SVC || !EJS_TPL || !EJS_KEY) {
+      onToast(`Email non configuré (SVC:${!!EJS_SVC} TPL:${!!EJS_TPL} KEY:${!!EJS_KEY})`, "warn");
+      return;
+    }
     try {
-      const items   = ctrl.items || [];
+      const items     = ctrl.items || [];
       const conformes = items.filter(i => i.statut === "conforme").length;
       const total     = items.length;
       const ncLines   = items
@@ -423,8 +426,10 @@ ${sectionsHTML}
         nc_count:   String(ctrl.ncCount || 0),
         nc_items:   ncLines || "Aucune non-conformité ✓",
       }, EJS_KEY);
+      onToast("📧 Email envoyé à contact@gtkreseaux.fr");
     } catch (e) {
       console.error("Erreur envoi email contrôle:", e);
+      onToast(`Erreur email : ${e?.text || e?.message || JSON.stringify(e)}`, "err");
     }
   };
 
