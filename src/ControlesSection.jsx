@@ -94,7 +94,11 @@ const NC_STATUTS = [
 const fmtDate      = d => { if (!d) return ""; const p = d.split("-"); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d; };
 const todayStr     = () => new Date().toISOString().slice(0, 10);
 const genId        = () => `ctr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-const techFullName = t => t ? (`${t.prenom || ""} ${t.nom || ""}`.trim() || t.n || t.name || "") : "";
+const techFullName = t => {
+  if (!t) return "";
+  const full = [t.prenom, t.nom].filter(s => s && s.trim()).join(" ");
+  return full || t.n || t.name || "";
+};
 
 // ─── Icônes ───
 const IcoSvg = (paths, size = 18) => (
