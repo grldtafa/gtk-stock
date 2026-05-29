@@ -124,6 +124,7 @@ const Ico = {
   print:    IcoSvg(<><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></>, 14),
   mail:     IcoSvg(<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>, 14),
   pencil:   IcoSvg(<><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>, 13),
+  grip:     IcoSvg(<><circle cx="9" cy="6"  r="1.3" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="6"  r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"/></>, 14),
 };
 
 // ─── Mini-composants ───
@@ -174,6 +175,8 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
   // Paramètres checklist
   const [paramNewItem,  setParamNewItem]  = useState({}); // { sectionIndex: "texte" }
   const [paramEditItem, setParamEditItem] = useState(null); // { key: "sIdx-iIdx", value: "..." }
+  const [dragSrc,       setDragSrc]       = useState(null); // { sIdx, iIdx }
+  const [dragOver,      setDragOver]      = useState(null); // { sIdx, iIdx } | { sIdx, atEnd: true }
 
   // Confirmation
   const [confirmDlg, setConfirmDlg] = useState(null);
@@ -283,6 +286,28 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     setChecklistData(newCL);
     await save(null, null, newCL);
     onToast("Élément supprimé");
+  };
+
+  const moveChecklistItem = async (srcSIdx, srcIIdx, dstSIdx, dstIIdx) => {
+    if (srcSIdx === dstSIdx && srcIIdx === dstIIdx) return;
+    const srcItem = checklistData[srcSIdx].items[srcIIdx];
+    // Retire l'item de la source
+    let newCL = checklistData.map((s, i) =>
+      i === srcSIdx ? { ...s, items: s.items.filter((_, j) => j !== srcIIdx) } : s
+    );
+    // Ajuste l'index cible si même section et après la source
+    const adj = (srcSIdx === dstSIdx && dstIIdx > srcIIdx) ? dstIIdx - 1 : dstIIdx;
+    // Insère à la destination
+    newCL = newCL.map((s, i) => {
+      if (i !== dstSIdx) return s;
+      const arr = [...s.items];
+      arr.splice(Math.max(0, Math.min(adj, arr.length)), 0, srcItem);
+      return { ...s, items: arr };
+    });
+    setChecklistData(newCL);
+    setDragSrc(null); setDragOver(null);
+    await save(null, null, newCL);
+    onToast("Élément déplacé");
   };
 
   const renameChecklistItem = async (sectionIdx, itemIdx, newText) => {
@@ -1112,108 +1137,140 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;
   const renderParams = () => (
     <div>
       <div style={{ fontSize: 13, color: T3, marginBottom: 16, lineHeight: 1.6, padding: "10px 14px", background: OL, borderRadius: 10, border: `1px solid ${O}30` }}>
-        Ajoute, modifie ou supprime des éléments dans chaque section. Clique sur ✏️ pour renommer un élément (ou double-clic dessus). Les modifications s'appliquent aux prochains contrôles.
+        Glisse ⠿ pour réordonner ou déplacer un élément entre sections. Clique sur ✏️ pour renommer, sur ✕ pour supprimer.
       </div>
 
-      {checklistData.map((section, sIdx) => (
-        <Card key={section.section} style={{ marginBottom: 12 }}>
-          {/* En-tête section */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 10, borderBottom: `1px solid ${C2}` }}>
-            <div style={{ width: 10, height: 10, borderRadius: "50%", background: section.color, flexShrink: 0 }} />
-            <div style={{ fontSize: 13, fontWeight: 800, color: T1, flex: 1 }}>{section.section}</div>
-            <span style={{ fontSize: 10, color: T5, fontFamily: FM }}>{section.items.length} pts</span>
-          </div>
+      {checklistData.map((section, sIdx) => {
+        const isDropZoneEnd = dragOver?.sIdx === sIdx && dragOver?.atEnd === true;
+        return (
+          <Card key={section.section} style={{ marginBottom: 12, border: isDropZoneEnd ? `1.5px solid ${section.color}` : `1px solid ${C2}`, transition: "border .1s" }}>
 
-          {/* Liste des éléments */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
-            {section.items.map((item, iIdx) => {
-              const editKey  = `${sIdx}-${iIdx}`;
-              const isEditing = paramEditItem?.key === editKey;
-              return (
-                <div key={item + iIdx} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: isEditing ? OL : C3, border: `1px solid ${isEditing ? O : C2}`, transition: "all .1s" }}>
-                  <div style={{ width: 4, height: 4, borderRadius: "50%", background: section.color, flexShrink: 0 }} />
+            {/* En-tête section — zone de dépôt "fin de section" */}
+            <div
+              onDragOver={e => { e.preventDefault(); setDragOver({ sIdx, atEnd: true }); }}
+              onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(p => p?.sIdx === sIdx && p?.atEnd ? null : p); }}
+              onDrop={e => { e.preventDefault(); if (dragSrc) moveChecklistItem(dragSrc.sIdx, dragSrc.iIdx, sIdx, checklistData[sIdx].items.length); }}
+              style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 10, borderBottom: `1px solid ${C2}`, borderRadius: 6, padding: "6px 4px 10px", background: isDropZoneEnd ? `${section.color}12` : "transparent", transition: "background .15s" }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: section.color, flexShrink: 0 }} />
+              <div style={{ fontSize: 13, fontWeight: 800, color: T1, flex: 1 }}>{section.section}</div>
+              <span style={{ fontSize: 10, color: T5, fontFamily: FM }}>{section.items.length} pts</span>
+              {isDropZoneEnd && <span style={{ fontSize: 10, color: section.color, fontWeight: 700 }}>↓ Déposer ici</span>}
+            </div>
 
-                  {isEditing ? (
-                    <input
-                      autoFocus
-                      value={paramEditItem.value}
-                      onChange={e => setParamEditItem(p => ({ ...p, value: e.target.value }))}
-                      onKeyDown={e => {
-                        if (e.key === "Enter")  renameChecklistItem(sIdx, iIdx, paramEditItem.value);
-                        if (e.key === "Escape") setParamEditItem(null);
-                      }}
-                      onBlur={() => {
-                        const trimmed = paramEditItem.value.trim();
-                        if (trimmed && trimmed !== item) renameChecklistItem(sIdx, iIdx, paramEditItem.value);
-                        else setParamEditItem(null);
-                      }}
-                      style={{ ...sInp, flex: 1, fontSize: 12, padding: "4px 8px", border: `1.5px solid ${O}`, borderRadius: 6 }}
-                    />
-                  ) : (
-                    <span
-                      style={{ flex: 1, fontSize: 12, color: T1, cursor: "text" }}
-                      onDoubleClick={() => setParamEditItem({ key: editKey, value: item })}>
-                      {item}
-                    </span>
-                  )}
+            {/* Liste des éléments */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
+              {section.items.map((item, iIdx) => {
+                const editKey   = `${sIdx}-${iIdx}`;
+                const isEditing = paramEditItem?.key === editKey;
+                const isDragging = dragSrc?.sIdx === sIdx && dragSrc?.iIdx === iIdx;
+                const isOver    = dragOver?.sIdx === sIdx && dragOver?.iIdx === iIdx && !isDragging;
+                return (
+                  <div
+                    key={item + iIdx}
+                    draggable={!isEditing}
+                    onDragStart={e => { e.dataTransfer.effectAllowed = "move"; setDragSrc({ sIdx, iIdx }); }}
+                    onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
+                    onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragOver({ sIdx, iIdx }); }}
+                    onDrop={e => { e.preventDefault(); e.stopPropagation(); if (dragSrc) moveChecklistItem(dragSrc.sIdx, dragSrc.iIdx, sIdx, iIdx); }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10, padding: "8px 10px",
+                      borderRadius: 8,
+                      background: isEditing ? OL : isOver ? `${O}12` : C3,
+                      border: `1px solid ${isEditing ? O : isOver ? O : C2}`,
+                      opacity: isDragging ? 0.35 : 1,
+                      cursor: isEditing ? "default" : "grab",
+                      transition: "background .1s, border-color .1s, opacity .1s",
+                    }}>
 
-                  {/* Bouton crayon (modifier) — masqué en mode édition */}
-                  {isEditing ? (
-                    <button
-                      onMouseDown={e => e.preventDefault()} // évite blur avant click
-                      onClick={() => renameChecklistItem(sIdx, iIdx, paramEditItem.value)}
-                      title="Valider"
-                      style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${GR}40`, background: GRL, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: GR, flexShrink: 0, padding: 0 }}>
-                      {Ico.check}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setParamEditItem({ key: editKey, value: item })}
-                      title="Modifier"
-                      style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${O}30`, background: OL, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: O, flexShrink: 0, padding: 0 }}>
-                      {Ico.pencil}
-                    </button>
-                  )}
+                    {/* Poignée drag */}
+                    {!isEditing && (
+                      <span style={{ color: T5, flexShrink: 0, lineHeight: 0, cursor: "grab" }}>{Ico.grip}</span>
+                    )}
 
-                  {/* Bouton supprimer — toujours visible sauf en édition */}
-                  {!isEditing && (
-                    <button
-                      onClick={() => askConfirm(
-                        "Supprimer cet élément ?",
-                        `"${item}" sera retiré de la checklist.`,
-                        () => removeChecklistItem(sIdx, iIdx),
-                        "Supprimer", RD
-                      )}
-                      title="Supprimer"
-                      style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${RD}30`, background: RDL, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: RD, flexShrink: 0, padding: 0 }}>
-                      {Ico.x}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                    <div style={{ width: 4, height: 4, borderRadius: "50%", background: section.color, flexShrink: 0 }} />
 
-          {/* Ajouter un élément */}
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              value={paramNewItem[sIdx] || ""}
-              onChange={e => setParamNewItem(p => ({ ...p, [sIdx]: e.target.value }))}
-              onKeyDown={e => e.key === "Enter" && addChecklistItem(sIdx)}
-              placeholder={`Ajouter un élément dans "${section.section}"…`}
-              style={{ ...sInp, flex: 1, fontSize: 12 }}
-              onFocus={e => e.target.style.borderColor = section.color}
-              onBlur={e => e.target.style.borderColor = C2}
-            />
-            <button
-              onClick={() => addChecklistItem(sIdx)}
-              disabled={!(paramNewItem[sIdx] || "").trim()}
-              style={{ width: 38, height: 38, borderRadius: 8, background: (paramNewItem[sIdx] || "").trim() ? section.color : C2, border: "none", cursor: (paramNewItem[sIdx] || "").trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", flexShrink: 0, transition: "background .15s" }}>
-              {Ico.plus}
-            </button>
-          </div>
-        </Card>
-      ))}
+                    {isEditing ? (
+                      <input
+                        autoFocus
+                        value={paramEditItem.value}
+                        onChange={e => setParamEditItem(p => ({ ...p, value: e.target.value }))}
+                        onKeyDown={e => {
+                          if (e.key === "Enter")  renameChecklistItem(sIdx, iIdx, paramEditItem.value);
+                          if (e.key === "Escape") setParamEditItem(null);
+                        }}
+                        onBlur={() => {
+                          const trimmed = paramEditItem.value.trim();
+                          if (trimmed && trimmed !== item) renameChecklistItem(sIdx, iIdx, paramEditItem.value);
+                          else setParamEditItem(null);
+                        }}
+                        style={{ ...sInp, flex: 1, fontSize: 12, padding: "4px 8px", border: `1.5px solid ${O}`, borderRadius: 6 }}
+                      />
+                    ) : (
+                      <span
+                        style={{ flex: 1, fontSize: 12, color: T1 }}
+                        onDoubleClick={() => setParamEditItem({ key: editKey, value: item })}>
+                        {item}
+                      </span>
+                    )}
+
+                    {/* Valider (mode édition) */}
+                    {isEditing ? (
+                      <button
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => renameChecklistItem(sIdx, iIdx, paramEditItem.value)}
+                        title="Valider"
+                        style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${GR}40`, background: GRL, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: GR, flexShrink: 0, padding: 0 }}>
+                        {Ico.check}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setParamEditItem({ key: editKey, value: item })}
+                        title="Renommer"
+                        style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${O}30`, background: OL, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: O, flexShrink: 0, padding: 0 }}>
+                        {Ico.pencil}
+                      </button>
+                    )}
+
+                    {/* Supprimer */}
+                    {!isEditing && (
+                      <button
+                        onClick={() => askConfirm(
+                          "Supprimer cet élément ?",
+                          `"${item}" sera retiré de la checklist.`,
+                          () => removeChecklistItem(sIdx, iIdx),
+                          "Supprimer", RD
+                        )}
+                        title="Supprimer"
+                        style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${RD}30`, background: RDL, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: RD, flexShrink: 0, padding: 0 }}>
+                        {Ico.x}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Ajouter un élément */}
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                value={paramNewItem[sIdx] || ""}
+                onChange={e => setParamNewItem(p => ({ ...p, [sIdx]: e.target.value }))}
+                onKeyDown={e => e.key === "Enter" && addChecklistItem(sIdx)}
+                placeholder={`Ajouter dans "${section.section}"…`}
+                style={{ ...sInp, flex: 1, fontSize: 12 }}
+                onFocus={e => e.target.style.borderColor = section.color}
+                onBlur={e => e.target.style.borderColor = C2}
+              />
+              <button
+                onClick={() => addChecklistItem(sIdx)}
+                disabled={!(paramNewItem[sIdx] || "").trim()}
+                style={{ width: 38, height: 38, borderRadius: 8, background: (paramNewItem[sIdx] || "").trim() ? section.color : C2, border: "none", cursor: (paramNewItem[sIdx] || "").trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", flexShrink: 0, transition: "background .15s" }}>
+                {Ico.plus}
+              </button>
+            </div>
+          </Card>
+        );
+      })}
     </div>
   );
 
