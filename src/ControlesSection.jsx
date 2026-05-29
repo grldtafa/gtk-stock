@@ -458,7 +458,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;
     <div class="hsub">GTK Réseaux · ${checklistData.reduce((a,s)=>a+s.items.length,0)} points de contrôle obligatoires</div>
   </div>
 </div>
-<div class="notice">⚠️ <strong>Tous ces équipements doivent être présents, fonctionnels et en bon état dans le véhicule le jour du contrôle.</strong> Tout élément manquant ou non conforme entraîne une non-conformité et une reconvocation sous 7 jours.</div>
+<div class="notice">⚠️ <strong>Tous ces équipements doivent être présents, fonctionnels et en bon état dans le véhicule le jour du contrôle.</strong> Tout élément manquant ou non conforme entraînera une reconvocation sous 7 jours ainsi qu'une pénalité de <strong>200 € par élément manquant</strong>.</div>
 <div class="cols">
   <div>${colHTML(checklistData.slice(0, mid))}</div>
   <div>${colHTML(checklistData.slice(mid))}</div>
