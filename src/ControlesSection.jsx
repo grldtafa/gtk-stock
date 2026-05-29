@@ -412,10 +412,10 @@ ${sectionsHTML}
     const mid = Math.ceil(checklistData.length / 2);
     const colHTML = (sections) => sections.map(section => {
       const rows = section.items.map(item =>
-        `<div class="item"><div class="dot" style="background:${section.color}"></div><span>${item}</span></div>`
+        `<div class="item"><div class="dot"></div><span>${item}</span></div>`
       ).join("");
       return `<div class="section">
-        <div class="sec-head" style="background:${section.color}">
+        <div class="sec-head">
           ${section.section}<span class="pts">${section.items.length} pts</span>
         </div>${rows}
       </div>`;
@@ -438,11 +438,12 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1}
 .section{margin-bottom:8px}
 .sec-head{display:flex;align-items:center;justify-content:space-between;
-  padding:5px 9px;border-radius:4px;font-size:10px;font-weight:800;color:#fff;margin-bottom:4px}
+  padding:5px 9px;border-radius:4px;font-size:10px;font-weight:800;color:#fff;margin-bottom:4px;
+  background:#FC7701}
 .pts{font-size:8px;opacity:.85}
 .item{display:flex;align-items:baseline;gap:7px;padding:3px 8px;font-size:10px;
   color:#0f172a;border-bottom:1px solid #f1f5f9;line-height:1.4}
-.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:3px;background:#FC7701}
 .footer{text-align:center;font-size:8px;color:#94a3b8;padding-top:8px;
   border-top:1px solid #e8edf3;margin-top:8px;flex-shrink:0}
 @media print{
