@@ -407,18 +407,16 @@ ${sectionsHTML}
   // ════════════════════════════════════════
   const printListePreparation = () => {
     const logoUrl = `${window.location.origin}/LOGO.png`;
-    const today   = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
-    const sectionsHTML = checklistData.map(section => {
+
+    // 2 colonnes : sections gauche / sections droite
+    const mid = Math.ceil(checklistData.length / 2);
+    const colHTML = (sections) => sections.map(section => {
       const rows = section.items.map(item =>
-        `<div class="item">
-          <div class="dot" style="background:${section.color}"></div>
-          <span class="item-lbl">${item}</span>
-        </div>`
+        `<div class="item"><div class="dot" style="background:${section.color}"></div><span>${item}</span></div>`
       ).join("");
       return `<div class="section">
         <div class="sec-head" style="background:${section.color}">
-          <span>${section.section}</span>
-          <span class="sec-pts">${section.items.length} points</span>
+          ${section.section}<span class="pts">${section.items.length} pts</span>
         </div>${rows}
       </div>`;
     }).join("");
@@ -427,58 +425,48 @@ ${sectionsHTML}
 <title>Fiche de préparation — GTK Réseaux</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-size:12px}
-.header{display:flex;align-items:center;gap:18px;padding:16px 28px 12px;border-bottom:3px solid #FC7701;margin-bottom:16px}
-.logo{height:42px;object-fit:contain}
-.htitle{font-size:18px;font-weight:900;color:#0f172a}
-.hsub{font-size:11px;color:#64748b;margin-top:3px;line-height:1.5}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 28px 16px}
-.info-field{border-bottom:1.5px solid #0f172a;padding:4px 0;margin-top:14px}
-.info-label{font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px}
-.info-line{height:22px}
-.notice{margin:0 28px 16px;padding:10px 14px;background:#FFF4EA;border:1.5px solid #FC770140;border-radius:8px;font-size:11px;color:#92400e;line-height:1.6}
-.section{margin:0 28px 10px;page-break-inside:avoid}
-.sec-head{display:flex;align-items:center;justify-content:space-between;padding:6px 11px;border-radius:5px;font-size:11px;font-weight:800;color:#fff;margin-bottom:5px}
-.sec-pts{font-size:9px;opacity:.85}
-.item{display:flex;align-items:center;gap:9px;padding:5px 9px;border-radius:4px;margin-bottom:3px;border:1px solid #e8edf3;background:#f9fafb}
-.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
-.item-lbl{font-size:11px;color:#0f172a;line-height:1.4}
-.footer{padding:10px 28px;border-top:1px solid #e8edf3;text-align:center;font-size:9px;color:#94a3b8;margin-top:8px}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+html,body{height:100%}
+body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;
+  display:flex;flex-direction:column;padding:14px 20px}
+.header{display:flex;align-items:center;gap:14px;padding-bottom:10px;
+  border-bottom:3px solid #FC7701;margin-bottom:10px;flex-shrink:0}
+.logo{height:36px;object-fit:contain}
+.htitle{font-size:16px;font-weight:900;color:#0f172a}
+.hsub{font-size:10px;color:#64748b;margin-top:2px}
+.notice{background:#FFF4EA;border:1.5px solid #FC770150;border-radius:6px;
+  padding:7px 12px;font-size:10px;color:#92400e;margin-bottom:10px;flex-shrink:0;line-height:1.5}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1}
+.section{margin-bottom:8px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;
+  padding:5px 9px;border-radius:4px;font-size:10px;font-weight:800;color:#fff;margin-bottom:4px}
+.pts{font-size:8px;opacity:.85}
+.item{display:flex;align-items:baseline;gap:7px;padding:3px 8px;font-size:10px;
+  color:#0f172a;border-bottom:1px solid #f1f5f9;line-height:1.4}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.footer{text-align:center;font-size:8px;color:#94a3b8;padding-top:8px;
+  border-top:1px solid #e8edf3;margin-top:8px;flex-shrink:0}
+@media print{
+  html,body{height:auto}
+  body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{margin:1cm;size:A4}
+}
 </style></head><body>
 <div class="header">
   <img src="${logoUrl}" class="logo" alt="GTK" onerror="this.style.display='none'"/>
   <div>
-    <div class="htitle">Fiche de préparation au contrôle technicien</div>
-    <div class="hsub">Vérifiez chaque point avant votre rendez-vous · Cochez les éléments présents et conformes</div>
+    <div class="htitle">Liste de préparation au contrôle technicien</div>
+    <div class="hsub">GTK Réseaux · ${checklistData.reduce((a,s)=>a+s.items.length,0)} points de contrôle obligatoires</div>
   </div>
 </div>
-<div class="info-grid">
-  <div>
-    <div class="info-label">Nom / Prénom du technicien</div>
-    <div class="info-field info-line"></div>
-  </div>
-  <div>
-    <div class="info-label">Immatriculation du véhicule</div>
-    <div class="info-field info-line"></div>
-  </div>
-  <div>
-    <div class="info-label">Date du contrôle prévu</div>
-    <div class="info-field info-line"></div>
-  </div>
-  <div>
-    <div class="info-label">Société / Équipe</div>
-    <div class="info-field info-line"></div>
-  </div>
+<div class="notice">⚠️ <strong>Tous ces équipements doivent être présents, fonctionnels et en bon état dans le véhicule le jour du contrôle.</strong> Tout élément manquant ou non conforme entraîne une non-conformité et une reconvocation sous 7 jours.</div>
+<div class="cols">
+  <div>${colHTML(checklistData.slice(0, mid))}</div>
+  <div>${colHTML(checklistData.slice(mid))}</div>
 </div>
-<div class="notice">
-  ⚠️ <strong>Important :</strong> Tous les équipements listés ci-dessous doivent être présents, fonctionnels et en bon état dans votre véhicule le jour du contrôle. Tout élément manquant ou non conforme fera l'objet d'une non-conformité et d'une reconvocation sous 7 jours.
-</div>
-${sectionsHTML}
-<div class="footer">Document émis le ${today} · GTK Réseaux · Ces éléments doivent être présents et conformes le jour du contrôle</div>
+<div class="footer">GTK Réseaux · Document de préparation au contrôle technicien · gtk-stock.vercel.app</div>
 </body></html>`;
 
-    const win = window.open("", "_blank", "width=920,height=720");
+    const win = window.open("", "_blank", "width=900,height=700");
     if (!win) { onToast("Autorisez les pop-ups pour générer le PDF", "warn"); return; }
     win.document.write(html);
     win.document.close();
