@@ -458,7 +458,17 @@ ${sectionsHTML}
     const logoUrl = `${window.location.origin}/LOGO.png`;
     const totalPts = checklistData.reduce((a, s) => a + s.items.length, 0);
 
-    const sectionsHTML = checklistData.map(section => {
+    // ── Trouver le meilleur point de coupure selon les items réels ──
+    let bestSplit = Math.ceil(checklistData.length / 2);
+    let bestDiff  = Infinity;
+    let cumLeft   = 0;
+    for (let i = 1; i < checklistData.length; i++) {
+      cumLeft += checklistData[i - 1].items.length;
+      const diff = Math.abs(cumLeft - (totalPts - cumLeft));
+      if (diff < bestDiff) { bestDiff = diff; bestSplit = i; }
+    }
+
+    const renderCol = (sections) => sections.map(section => {
       const rows = section.items.map(item =>
         `<div class="item"><div class="dot"></div><span>${item}</span></div>`
       ).join("");
@@ -480,9 +490,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
 .hsub{font-size:9.5px;color:#64748b;margin-top:2px}
 .notice{background:#FFF4EA;border:1.5px solid #FC770155;border-radius:6px;
   padding:6px 11px;font-size:9.5px;color:#92400e;margin-bottom:9px;line-height:1.5}
-.cols{columns:2;column-gap:14px;column-fill:balance}
-.section{break-inside:avoid;-webkit-column-break-inside:avoid;
-  page-break-inside:avoid;display:inline-block;width:100%;margin-bottom:8px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.section{margin-bottom:8px}
 .sec-head{display:flex;align-items:center;justify-content:space-between;
   padding:5px 9px;border-radius:4px;font-size:10px;font-weight:800;color:#fff;margin-bottom:3px;
   background:#FC7701}
@@ -505,7 +514,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
   </div>
 </div>
 <div class="notice">⚠️ <strong>Tous ces équipements doivent être présents, fonctionnels et en bon état dans le véhicule le jour du contrôle.</strong> Tout élément manquant ou non conforme entraînera une reconvocation sous 7 jours ainsi qu'une pénalité de <strong>200 € par élément manquant</strong>.</div>
-<div class="cols">${sectionsHTML}</div>
+<div class="cols">
+  <div>${renderCol(checklistData.slice(0, bestSplit))}</div>
+  <div>${renderCol(checklistData.slice(bestSplit))}</div>
+</div>
 <div class="footer">GTK Réseaux · Document de préparation au contrôle technicien · gtk-stock.vercel.app</div>
 </body></html>`;
 
