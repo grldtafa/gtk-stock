@@ -227,11 +227,15 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     setSaving(true);
     const id = genId();
     const ncItems = Object.entries(ctrlItems).filter(([, v]) => v.statut === "non_conforme").map(([l]) => l);
+    const reconvocDate = ncItems.length > 0
+      ? new Date(new Date(ctrlDate).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      : null;
     const newCtrl = {
       id, date: ctrlDate, controleur: ctrlControleur,
       techNom: ctrlTech, vehicule: ctrlVehicule, statut,
       items: Object.entries(ctrlItems).map(([label, v]) => ({ label, ...v })),
       createdAt: new Date().toISOString(), ncCount: ncItems.length,
+      reconvocDate,
     };
     const newNCs = ncItems.map(label => ({
       id: genId(), controleId: id,
@@ -399,6 +403,104 @@ ${sectionsHTML}
   };
 
   // ════════════════════════════════════════
+  // PDF FICHE DE PRÉPARATION (liste vierge)
+  // ════════════════════════════════════════
+  const printListePreparation = () => {
+    const logoUrl = `${window.location.origin}/LOGO.png`;
+    const today   = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+    const sectionsHTML = checklistData.map(section => {
+      const rows = section.items.map(item =>
+        `<div class="item">
+          <div class="checkbox"></div>
+          <span class="item-lbl">${item}</span>
+        </div>`
+      ).join("");
+      return `<div class="section">
+        <div class="sec-head" style="background:${section.color}">
+          <span>${section.section}</span>
+          <span class="sec-pts">${section.items.length} points</span>
+        </div>${rows}
+      </div>`;
+    }).join("");
+
+    const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<title>Fiche de préparation — GTK Réseaux</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-size:12px}
+.header{display:flex;align-items:center;gap:18px;padding:16px 28px 12px;border-bottom:3px solid #FC7701;margin-bottom:16px}
+.logo{height:42px;object-fit:contain}
+.htitle{font-size:18px;font-weight:900;color:#0f172a}
+.hsub{font-size:11px;color:#64748b;margin-top:3px;line-height:1.5}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 28px 16px}
+.info-field{border-bottom:1.5px solid #0f172a;padding:4px 0;margin-top:14px}
+.info-label{font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px}
+.info-line{height:22px}
+.notice{margin:0 28px 16px;padding:10px 14px;background:#FFF4EA;border:1.5px solid #FC770140;border-radius:8px;font-size:11px;color:#92400e;line-height:1.6}
+.section{margin:0 28px 10px;page-break-inside:avoid}
+.sec-head{display:flex;align-items:center;justify-content:space-between;padding:6px 11px;border-radius:5px;font-size:11px;font-weight:800;color:#fff;margin-bottom:5px}
+.sec-pts{font-size:9px;opacity:.85}
+.item{display:flex;align-items:center;gap:9px;padding:5px 9px;border-radius:4px;margin-bottom:3px;border:1px solid #e8edf3;background:#f9fafb}
+.checkbox{width:14px;height:14px;border:1.5px solid #94a3b8;border-radius:3px;flex-shrink:0}
+.item-lbl{font-size:11px;color:#0f172a;line-height:1.4}
+.sign-area{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:16px 28px;margin-top:10px;border-top:1px solid #e8edf3}
+.sign-box{text-align:center}
+.sign-line{border-bottom:1.5px solid #0f172a;height:40px;margin-bottom:6px}
+.sign-label{font-size:9px;color:#64748b}
+.footer{padding:10px 28px;border-top:1px solid #e8edf3;text-align:center;font-size:9px;color:#94a3b8;margin-top:8px}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<div class="header">
+  <img src="${logoUrl}" class="logo" alt="GTK" onerror="this.style.display='none'"/>
+  <div>
+    <div class="htitle">Fiche de préparation au contrôle technicien</div>
+    <div class="hsub">Vérifiez chaque point avant votre rendez-vous · Cochez les éléments présents et conformes</div>
+  </div>
+</div>
+<div class="info-grid">
+  <div>
+    <div class="info-label">Nom / Prénom du technicien</div>
+    <div class="info-field info-line"></div>
+  </div>
+  <div>
+    <div class="info-label">Immatriculation du véhicule</div>
+    <div class="info-field info-line"></div>
+  </div>
+  <div>
+    <div class="info-label">Date du contrôle prévu</div>
+    <div class="info-field info-line"></div>
+  </div>
+  <div>
+    <div class="info-label">Société / Équipe</div>
+    <div class="info-field info-line"></div>
+  </div>
+</div>
+<div class="notice">
+  ⚠️ <strong>Important :</strong> Tous les équipements listés ci-dessous doivent être présents, fonctionnels et en bon état dans votre véhicule le jour du contrôle. Tout élément manquant ou non conforme fera l'objet d'une non-conformité et d'une reconvocation sous 7 jours.
+</div>
+${sectionsHTML}
+<div class="sign-area">
+  <div class="sign-box">
+    <div class="sign-line"></div>
+    <div class="sign-label">Signature du technicien</div>
+  </div>
+  <div class="sign-box">
+    <div class="sign-line"></div>
+    <div class="sign-label">Signature du contrôleur</div>
+  </div>
+</div>
+<div class="footer">Document émis le ${today} · GTK Réseaux · À conserver avec le véhicule</div>
+</body></html>`;
+
+    const win = window.open("", "_blank", "width=920,height=720");
+    if (!win) { onToast("Autorisez les pop-ups pour générer le PDF", "warn"); return; }
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 600);
+  };
+
+  // ════════════════════════════════════════
   // EMAIL AUTO
   // ════════════════════════════════════════
   const sendControleEmail = async (ctrl) => {
@@ -439,7 +541,15 @@ ${sectionsHTML}
   // ════════════════════════════════════════
   // ACCUEIL
   // ════════════════════════════════════════
-  const renderAccueil = () => (
+  const renderAccueil = () => {
+    // Reconvocations en attente (contrôles avec NC non tous résolus)
+    const today = todayStr();
+    const reconvocs = controles
+      .filter(c => c.reconvocDate)
+      .filter(c => nonConformites.some(n => n.controleId === c.id && n.statut !== "resolu"))
+      .sort((a, b) => a.reconvocDate.localeCompare(b.reconvocDate));
+
+    return (
     <div>
       <div onClick={initForm}
         style={{ background: `linear-gradient(135deg, ${O}, #ff9a3c)`, borderRadius: 16, padding: "24px 20px", cursor: "pointer", marginBottom: 20, color: "#fff", display: "flex", alignItems: "center", gap: 16, boxShadow: `0 4px 20px ${O}40`, transition: "transform .15s, box-shadow .15s" }}
@@ -507,8 +617,56 @@ ${sectionsHTML}
           Aucun contrôle effectué pour l'instant
         </Card>
       )}
+
+      {/* ── Reconvocations en attente ── */}
+      {reconvocs.length > 0 && (
+        <>
+          <div style={{ fontSize: 11, fontWeight: 700, color: T5, textTransform: "uppercase", letterSpacing: 1, margin: "20px 0 10px" }}>Reconvocations à prévoir</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {reconvocs.map(c => {
+              const daysLeft = Math.ceil((new Date(c.reconvocDate) - new Date(today)) / (1000 * 60 * 60 * 24));
+              const late  = daysLeft < 0;
+              const soon  = daysLeft >= 0 && daysLeft <= 2;
+              const color = late ? RD : soon ? OR : T3;
+              const bg    = late ? RDL : soon ? ORL : C3;
+              return (
+                <div key={c.id} onClick={() => { setViewCtrl(c); setCtrlSub("historique"); }}
+                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: bg, border: `1.5px solid ${color}30`, borderRadius: 10, cursor: "pointer" }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: `${color}20`, display: "flex", alignItems: "center", justifyContent: "center", color, fontWeight: 800, fontSize: 13, flexShrink: 0 }}>
+                    {(c.techNom || "?").charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: T1 }}>{c.techNom}{c.vehicule ? ` · ${c.vehicule}` : ""}</div>
+                    <div style={{ fontSize: 10, color, fontWeight: 600, marginTop: 2 }}>
+                      {late ? `⚠️ En retard de ${Math.abs(daysLeft)} jour${Math.abs(daysLeft) > 1 ? "s" : ""}` : `Reconvoquer le ${fmtDate(c.reconvocDate)}${daysLeft === 0 ? " — Aujourd'hui !" : ` — dans ${daysLeft} jour${daysLeft > 1 ? "s" : ""}`}`}
+                    </div>
+                  </div>
+                  <Badge bg={`${color}20`} color={color}>{c.ncCount} NC</Badge>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* ── Fiche de préparation ── */}
+      <div
+        onClick={printListePreparation}
+        style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", background: C3, border: `1.5px dashed ${C2}`, borderRadius: 12, cursor: "pointer", transition: "background .1s" }}
+        onMouseEnter={e => e.currentTarget.style.background = C2}
+        onMouseLeave={e => e.currentTarget.style.background = C3}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: OL, display: "flex", alignItems: "center", justifyContent: "center", color: O, flexShrink: 0 }}>
+          {Ico.print}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: T1 }}>Fiche de préparation</div>
+          <div style={{ fontSize: 11, color: T4, marginTop: 2 }}>PDF avec la liste complète à envoyer aux techniciens avant leur contrôle</div>
+        </div>
+        <span style={{ fontSize: 11, color: O, fontWeight: 700 }}>PDF →</span>
+      </div>
     </div>
-  );
+    );
+  };
 
   // ════════════════════════════════════════
   // FORMULAIRE
@@ -683,11 +841,30 @@ ${sectionsHTML}
           </div>
 
           {ncP.length > 0 && (
-            <div style={{ background: RDL, border: `1.5px solid ${RD}30`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ background: RDL, border: `1.5px solid ${RD}30`, borderRadius: 10, padding: "10px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
               {Ico.alert}
               <span style={{ fontSize: 12, fontWeight: 700, color: RD }}>{ncP.length} non-conformité{ncP.length > 1 ? "s" : ""} en attente</span>
             </div>
           )}
+          {viewCtrl.reconvocDate && ncP.length > 0 && (() => {
+            const daysLeft = Math.ceil((new Date(viewCtrl.reconvocDate) - new Date(todayStr())) / (1000 * 60 * 60 * 24));
+            const late  = daysLeft < 0;
+            const color = late ? RD : daysLeft <= 2 ? OR : GR;
+            const bg    = late ? RDL : daysLeft <= 2 ? ORL : GRL;
+            return (
+              <div style={{ background: bg, border: `1.5px solid ${color}30`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 16 }}>📅</span>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color }}>
+                    Reconvocation : {fmtDate(viewCtrl.reconvocDate)}
+                  </div>
+                  <div style={{ fontSize: 11, color, opacity: .8, marginTop: 1 }}>
+                    {late ? `En retard de ${Math.abs(daysLeft)} jour${Math.abs(daysLeft) > 1 ? "s" : ""}` : daysLeft === 0 ? "Aujourd'hui !" : `Dans ${daysLeft} jour${daysLeft > 1 ? "s" : ""}`}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {checklistData.map(section => {
             const sItems = (viewCtrl.items || []).filter(i => section.items.includes(i.label));
@@ -757,6 +934,11 @@ ${sectionsHTML}
                     <div onClick={() => setViewCtrl(c)} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: T1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.techNom || "—"}{c.vehicule ? ` · ${c.vehicule}` : ""}</div>
                       <div style={{ fontSize: 11, color: T4, marginTop: 2 }}>{fmtDate(c.date)} · {c.controleur}</div>
+                      {c.reconvocDate && nonConformites.some(n => n.controleId === c.id && n.statut !== "resolu") && (() => {
+                        const d = Math.ceil((new Date(c.reconvocDate) - new Date(todayStr())) / (1000*60*60*24));
+                        const col = d < 0 ? RD : d <= 2 ? OR : T4;
+                        return <div style={{ fontSize: 10, color: col, fontWeight: 600, marginTop: 1 }}>📅 Reconvoquer le {fmtDate(c.reconvocDate)}{d < 0 ? ` (retard ${Math.abs(d)}j)` : d === 0 ? " — Aujourd'hui" : ""}</div>;
+                      })()}
                     </div>
                     <div style={{ display: "flex", gap: 5, flexShrink: 0, alignItems: "center" }}>
                       {ncP > 0 && <Badge bg={RDL} color={RD}>{ncP} NC</Badge>}
