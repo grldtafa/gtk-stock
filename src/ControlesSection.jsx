@@ -125,6 +125,7 @@ const Ico = {
   mail:     IcoSvg(<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>, 14),
   pencil:   IcoSvg(<><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>, 13),
   grip:     IcoSvg(<><circle cx="9" cy="6"  r="1.3" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="6"  r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"/></>, 14),
+  sortAZ:   IcoSvg(<><line x1="3" y1="5" x2="12" y2="5"/><line x1="3" y1="10" x2="9" y2="10"/><line x1="3" y1="15" x2="6" y2="15"/><polyline points="16 3 16 21"/><polyline points="12 17 16 21 20 17"/></>, 13),
 };
 
 // ─── Mini-composants ───
@@ -286,6 +287,15 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     setChecklistData(newCL);
     await save(null, null, newCL);
     onToast("Élément supprimé");
+  };
+
+  const sortChecklistSection = async (sectionIdx) => {
+    const newCL = checklistData.map((s, i) =>
+      i === sectionIdx ? { ...s, items: [...s.items].sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" })) } : s
+    );
+    setChecklistData(newCL);
+    await save(null, null, newCL);
+    onToast("Section triée A → Z");
   };
 
   const moveChecklistItem = async (srcSIdx, srcIIdx, dstSIdx, dstIIdx) => {
@@ -1136,8 +1146,14 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;
   // ════════════════════════════════════════
   const renderParams = () => (
     <div>
-      <div style={{ fontSize: 13, color: T3, marginBottom: 16, lineHeight: 1.6, padding: "10px 14px", background: OL, borderRadius: 10, border: `1px solid ${O}30` }}>
-        Glisse ⠿ pour réordonner ou déplacer un élément entre sections. Clique sur ✏️ pour renommer, sur ✕ pour supprimer.
+      <div style={{ fontSize: 13, color: T3, marginBottom: 16, lineHeight: 2, padding: "10px 14px", background: OL, borderRadius: 10, border: `1px solid ${O}30`, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 4 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ display: "inline-flex", color: T4 }}>{Ico.grip}</span> glisser pour déplacer</span>
+        <span style={{ color: C2, margin: "0 4px" }}>·</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ display: "inline-flex", color: O }}>{Ico.pencil}</span> renommer</span>
+        <span style={{ color: C2, margin: "0 4px" }}>·</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ display: "inline-flex", color: RD }}>{Ico.x}</span> supprimer</span>
+        <span style={{ color: C2, margin: "0 4px" }}>·</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ display: "inline-flex", color: T3 }}>{Ico.sortAZ}</span> trier A→Z</span>
       </div>
 
       {checklistData.map((section, sIdx) => {
@@ -1153,8 +1169,20 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;
               style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 10, borderBottom: `1px solid ${C2}`, borderRadius: 6, padding: "6px 4px 10px", background: isDropZoneEnd ? `${section.color}12` : "transparent", transition: "background .15s" }}>
               <div style={{ width: 10, height: 10, borderRadius: "50%", background: section.color, flexShrink: 0 }} />
               <div style={{ fontSize: 13, fontWeight: 800, color: T1, flex: 1 }}>{section.section}</div>
-              <span style={{ fontSize: 10, color: T5, fontFamily: FM }}>{section.items.length} pts</span>
-              {isDropZoneEnd && <span style={{ fontSize: 10, color: section.color, fontWeight: 700 }}>↓ Déposer ici</span>}
+              <span style={{ fontSize: 10, color: T5, fontFamily: FM, marginRight: 6 }}>{section.items.length} pts</span>
+              {isDropZoneEnd
+                ? <span style={{ fontSize: 10, color: section.color, fontWeight: 700 }}>↓ Déposer ici</span>
+                : (
+                  <button
+                    onClick={() => sortChecklistSection(sIdx)}
+                    title="Trier A → Z"
+                    style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${C2}`, background: C1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: T4, flexShrink: 0, padding: 0 }}
+                    onMouseEnter={e => { e.currentTarget.style.background = C3; e.currentTarget.style.color = T1; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = C1; e.currentTarget.style.color = T4; }}>
+                    {Ico.sortAZ}
+                  </button>
+                )
+              }
             </div>
 
             {/* Liste des éléments */}
