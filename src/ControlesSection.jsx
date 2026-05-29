@@ -411,7 +411,7 @@ ${sectionsHTML}
     const sectionsHTML = checklistData.map(section => {
       const rows = section.items.map(item =>
         `<div class="item">
-          <div class="checkbox"></div>
+          <div class="dot" style="background:${section.color}"></div>
           <span class="item-lbl">${item}</span>
         </div>`
       ).join("");
@@ -441,12 +441,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-
 .sec-head{display:flex;align-items:center;justify-content:space-between;padding:6px 11px;border-radius:5px;font-size:11px;font-weight:800;color:#fff;margin-bottom:5px}
 .sec-pts{font-size:9px;opacity:.85}
 .item{display:flex;align-items:center;gap:9px;padding:5px 9px;border-radius:4px;margin-bottom:3px;border:1px solid #e8edf3;background:#f9fafb}
-.checkbox{width:14px;height:14px;border:1.5px solid #94a3b8;border-radius:3px;flex-shrink:0}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
 .item-lbl{font-size:11px;color:#0f172a;line-height:1.4}
-.sign-area{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:16px 28px;margin-top:10px;border-top:1px solid #e8edf3}
-.sign-box{text-align:center}
-.sign-line{border-bottom:1.5px solid #0f172a;height:40px;margin-bottom:6px}
-.sign-label{font-size:9px;color:#64748b}
 .footer{padding:10px 28px;border-top:1px solid #e8edf3;text-align:center;font-size:9px;color:#94a3b8;margin-top:8px}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
@@ -479,17 +475,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-
   ⚠️ <strong>Important :</strong> Tous les équipements listés ci-dessous doivent être présents, fonctionnels et en bon état dans votre véhicule le jour du contrôle. Tout élément manquant ou non conforme fera l'objet d'une non-conformité et d'une reconvocation sous 7 jours.
 </div>
 ${sectionsHTML}
-<div class="sign-area">
-  <div class="sign-box">
-    <div class="sign-line"></div>
-    <div class="sign-label">Signature du technicien</div>
-  </div>
-  <div class="sign-box">
-    <div class="sign-line"></div>
-    <div class="sign-label">Signature du contrôleur</div>
-  </div>
-</div>
-<div class="footer">Document émis le ${today} · GTK Réseaux · À conserver avec le véhicule</div>
+<div class="footer">Document émis le ${today} · GTK Réseaux · Ces éléments doivent être présents et conformes le jour du contrôle</div>
 </body></html>`;
 
     const win = window.open("", "_blank", "width=920,height=720");
