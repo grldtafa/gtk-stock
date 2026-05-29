@@ -22,8 +22,8 @@ const FF  = "'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-s
 const FM  = "'SF Mono',SFMono-Regular,Menlo,Consolas,monospace";
 const SH  = "0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04)";
 
-// ─── Checklist unique : Contrôle Technicien ───
-const CHECKLIST = [
+// ─── Checklist par défaut ───
+const DEFAULT_CHECKLIST = [
   {
     section: "Équipements de sécurité (EPI)",
     color: "#2563eb",
@@ -85,8 +85,6 @@ const CHECKLIST = [
   },
 ];
 
-const TOTAL_ITEMS = CHECKLIST.reduce((a, s) => a + s.items.length, 0);
-
 const NC_STATUTS = [
   { id: "a_traiter", label: "À traiter", color: RD, bg: RDL },
   { id: "en_cours",  label: "En cours",  color: OR, bg: ORL },
@@ -102,17 +100,21 @@ const IcoSvg = (paths, size = 18) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{paths}</svg>
 );
 const Ico = {
-  check:   IcoSvg(<><polyline points="20 6 9 17 4 12"/></>, 14),
-  back:    IcoSvg(<><polyline points="15 18 9 12 15 6"/></>, 16),
-  trash:   IcoSvg(<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></>, 14),
-  alert:   IcoSvg(<><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>, 14),
-  plus:    IcoSvg(<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>, 16),
-  comment: IcoSvg(<><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></>, 14),
-  history: IcoSvg(<><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.18"/></>),
-  nc:      IcoSvg(<><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>),
-  stats:   IcoSvg(<><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>),
-  search:  IcoSvg(<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>, 15),
-  user:    IcoSvg(<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>),
+  check:    IcoSvg(<><polyline points="20 6 9 17 4 12"/></>, 14),
+  back:     IcoSvg(<><polyline points="15 18 9 12 15 6"/></>, 16),
+  trash:    IcoSvg(<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></>, 14),
+  alert:    IcoSvg(<><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>, 14),
+  plus:     IcoSvg(<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>, 16),
+  comment:  IcoSvg(<><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></>, 14),
+  history:  IcoSvg(<><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.18"/></>),
+  nc:       IcoSvg(<><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>),
+  stats:    IcoSvg(<><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>),
+  search:   IcoSvg(<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>, 15),
+  user:     IcoSvg(<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>),
+  settings: IcoSvg(<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>, 16),
+  chevDown: IcoSvg(<><polyline points="6 9 12 15 18 9"/></>, 14),
+  chevUp:   IcoSvg(<><polyline points="18 15 12 9 6 15"/></>, 14),
+  x:        IcoSvg(<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>, 13),
 };
 
 // ─── Mini-composants ───
@@ -136,10 +138,11 @@ const Btn = ({ children, color = O, outline = false, small = false, disabled = f
 );
 
 export default function ControlesSection({ techs = [], currentUser = null, onToast, isAdmin = false }) {
-  const [ctrlSub,         setCtrlSub]         = useState("accueil");
-  const [controles,       setControles]       = useState([]);
-  const [nonConformites,  setNonConformites]  = useState([]);
-  const [dataLoaded,      setDataLoaded]      = useState(false);
+  const [ctrlSub,        setCtrlSub]        = useState("accueil");
+  const [controles,      setControles]      = useState([]);
+  const [nonConformites, setNonConformites] = useState([]);
+  const [checklistData,  setChecklistData]  = useState(DEFAULT_CHECKLIST);
+  const [dataLoaded,     setDataLoaded]     = useState(false);
 
   // Form
   const [ctrlDate,       setCtrlDate]       = useState(todayStr());
@@ -156,12 +159,19 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
   const [viewCtrl,   setViewCtrl]   = useState(null);
 
   // NC
-  const [ncStatutFilter, setNcStatutFilter] = useState("");
+  const [ncStatutFilter,  setNcStatutFilter]  = useState("");
+  const [ncExpandedTechs, setNcExpandedTechs] = useState(new Set());
+
+  // Paramètres checklist
+  const [paramNewItem, setParamNewItem] = useState({}); // { sectionIndex: "texte" }
 
   // Confirmation
   const [confirmDlg, setConfirmDlg] = useState(null);
   const askConfirm = (title, body, onConfirm, confirmLabel = "Supprimer", confirmColor = RD) =>
     setConfirmDlg({ title, body, onConfirm, confirmLabel, confirmColor });
+
+  // ── Computed ──
+  const totalItems = checklistData.reduce((a, s) => a + s.items.length, 0);
 
   // ── Load ──
   useEffect(() => {
@@ -171,20 +181,26 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
         const { data } = await supabase.from("app_state").select("data").eq("key", "gtk-controles").single();
         if (data?.data?.controles)      setControles(data.data.controles);
         if (data?.data?.nonConformites) setNonConformites(data.data.nonConformites);
+        if (data?.data?.checklistData)  setChecklistData(data.data.checklistData);
       } catch (e) { console.error("Erreur chargement contrôles:", e); }
       setDataLoaded(true);
     })();
   }, [dataLoaded]);
 
-  const save = async (newC, newN) => {
-    try { await saveAppState("gtk-controles", { controles: newC ?? controles, nonConformites: newN ?? nonConformites }); }
-    catch (e) { onToast("Erreur sauvegarde", "err"); }
+  const save = async (newC, newN, newCL) => {
+    try {
+      await saveAppState("gtk-controles", {
+        controles:      newC  ?? controles,
+        nonConformites: newN  ?? nonConformites,
+        checklistData:  newCL ?? checklistData,
+      });
+    } catch (e) { onToast("Erreur sauvegarde", "err"); }
   };
 
   // ── Init form ──
   const initForm = () => {
     const items = {};
-    CHECKLIST.forEach(s => s.items.forEach(label => { items[label] = { statut: "non_verifie", commentaire: "" }; }));
+    checklistData.forEach(s => s.items.forEach(label => { items[label] = { statut: "non_verifie", commentaire: "" }; }));
     setCtrlItems(items);
     setCtrlDate(todayStr());
     setCtrlControleur(currentUser?.name || "");
@@ -236,6 +252,24 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     onToast("Contrôle supprimé"); if (viewCtrl?.id === id) setViewCtrl(null);
   };
 
+  // ── Checklist édition ──
+  const addChecklistItem = async (sectionIdx) => {
+    const text = (paramNewItem[sectionIdx] || "").trim();
+    if (!text) return;
+    const newCL = checklistData.map((s, i) => i === sectionIdx ? { ...s, items: [...s.items, text] } : s);
+    setChecklistData(newCL);
+    setParamNewItem(p => ({ ...p, [sectionIdx]: "" }));
+    await save(null, null, newCL);
+    onToast("Élément ajouté");
+  };
+
+  const removeChecklistItem = async (sectionIdx, itemIdx) => {
+    const newCL = checklistData.map((s, i) => i === sectionIdx ? { ...s, items: s.items.filter((_, j) => j !== itemIdx) } : s);
+    setChecklistData(newCL);
+    await save(null, null, newCL);
+    onToast("Élément supprimé");
+  };
+
   // ── Calculs ──
   const ncOuvertes = nonConformites.filter(n => n.statut !== "resolu").length;
   const filtHistorique = controles.filter(c => {
@@ -243,6 +277,12 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     return ms && (!histTech || c.techNom === histTech);
   });
   const filtNC = nonConformites.filter(n => !ncStatutFilter || n.statut === ncStatutFilter);
+
+  const toggleNCTech = (tech) => setNcExpandedTechs(prev => {
+    const next = new Set(prev);
+    next.has(tech) ? next.delete(tech) : next.add(tech);
+    return next;
+  });
 
   // ── Input style ──
   const sInp = { background: C1, border: `1.5px solid ${C2}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, color: T1, fontFamily: FF, outline: "none", width: "100%", boxSizing: "border-box" };
@@ -252,7 +292,6 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
   // ════════════════════════════════════════
   const renderAccueil = () => (
     <div>
-      {/* Carte principale CTA */}
       <div onClick={initForm}
         style={{ background: `linear-gradient(135deg, ${O}, #ff9a3c)`, borderRadius: 16, padding: "24px 20px", cursor: "pointer", marginBottom: 20, color: "#fff", display: "flex", alignItems: "center", gap: 16, boxShadow: `0 4px 20px ${O}40`, transition: "transform .15s, box-shadow .15s" }}
         onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 28px ${O}50`; }}
@@ -262,14 +301,13 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 17, fontWeight: 900, letterSpacing: -.3, marginBottom: 4 }}>Nouveau contrôle technicien</div>
-          <div style={{ fontSize: 12, opacity: .85 }}>{TOTAL_ITEMS} points · EPI, signalisation, véhicule, outillage fibre</div>
+          <div style={{ fontSize: 12, opacity: .85 }}>{totalItems} points · EPI, signalisation, véhicule, outillage fibre</div>
         </div>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           {Ico.plus}
         </div>
       </div>
 
-      {/* Résumé rapide */}
       {controles.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 20 }}>
           {[
@@ -285,7 +323,6 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
         </div>
       )}
 
-      {/* Derniers contrôles */}
       {controles.length > 0 && (
         <>
           <div style={{ fontSize: 11, fontWeight: 700, color: T5, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Derniers contrôles</div>
@@ -331,11 +368,10 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     const conformeCount = Object.values(ctrlItems).filter(v => v.statut === "conforme").length;
     const ncCount       = Object.values(ctrlItems).filter(v => v.statut === "non_conforme").length;
     const doneCount     = Object.values(ctrlItems).filter(v => v.statut !== "non_verifie").length;
-    const progress      = TOTAL_ITEMS > 0 ? Math.round((doneCount / TOTAL_ITEMS) * 100) : 0;
+    const progress      = totalItems > 0 ? Math.round((doneCount / totalItems) * 100) : 0;
 
     return (
       <div>
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
           <button onClick={() => setCtrlSub("accueil")}
             style={{ background: C3, border: `1px solid ${C2}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: T3 }}>
@@ -343,7 +379,7 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: T1 }}>Contrôle technicien</div>
-            <div style={{ fontSize: 11, color: T4, marginTop: 1 }}>{progress}% · {conformeCount} ✓ · {ncCount} ✗ · {TOTAL_ITEMS - doneCount} non vérifiés</div>
+            <div style={{ fontSize: 11, color: T4, marginTop: 1 }}>{progress}% · {conformeCount} ✓ · {ncCount} ✗ · {totalItems - doneCount} non vérifiés</div>
           </div>
           <div style={{ width: 72, flexShrink: 0 }}>
             <div style={{ height: 6, background: C2, borderRadius: 4, overflow: "hidden" }}>
@@ -353,7 +389,6 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
           </div>
         </div>
 
-        {/* Infos générales */}
         <Card style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: T3, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Informations générales</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -387,8 +422,7 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
           </div>
         </Card>
 
-        {/* Checklist par section */}
-        {CHECKLIST.map(section => (
+        {checklistData.map(section => (
           <Card key={section.section} style={{ marginBottom: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 10, borderBottom: `1px solid ${C2}` }}>
               <div style={{ width: 3, height: 16, borderRadius: 2, background: section.color, flexShrink: 0 }} />
@@ -435,24 +469,32 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
           </Card>
         ))}
 
-        {/* Résumé & validation */}
-        <Card style={{ marginTop: 8, border: `1.5px solid ${ncCount > 0 ? RD + "40" : GR + "40"}`, background: ncCount > 0 ? RDL : GRL }}>
-          <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-            <Badge bg={GRL} color={GR}>{conformeCount} conforme{conformeCount > 1 ? "s" : ""}</Badge>
-            {ncCount > 0 && <Badge bg={RDL} color={RD}>{ncCount} non-conforme{ncCount > 1 ? "s" : ""}</Badge>}
-            <Badge bg={C3} color={T4}>{TOTAL_ITEMS - doneCount} non vérifié{TOTAL_ITEMS - doneCount > 1 ? "s" : ""}</Badge>
-          </div>
-          {ncCount > 0 && (
-            <div style={{ fontSize: 12, color: RD, fontWeight: 600, marginBottom: 12, padding: "8px 12px", background: "#fff", borderRadius: 8, border: `1px solid ${RD}30`, display: "flex", alignItems: "center", gap: 8 }}>
-              {Ico.alert} {ncCount} non-conformité{ncCount > 1 ? "s" : ""} sera{ncCount > 1 ? "ont" : ""} créée{ncCount > 1 ? "s" : ""} automatiquement.
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Btn outline color={T3} small onClick={() => submitControle("brouillon")} disabled={saving}>Brouillon</Btn>
-            <Btn color={GR} onClick={() => submitControle("valide")} disabled={saving} style={{ flex: 1 }}>
-              {Ico.check} {saving ? "Enregistrement…" : "Valider le contrôle"}
-            </Btn>
-          </div>
+        <Card style={{ marginTop: 8, border: `1.5px solid ${Object.values(ctrlItems).filter(v => v.statut === "non_conforme").length > 0 ? RD + "40" : GR + "40"}`, background: Object.values(ctrlItems).filter(v => v.statut === "non_conforme").length > 0 ? RDL : GRL }}>
+          {(() => {
+            const conformeC = Object.values(ctrlItems).filter(v => v.statut === "conforme").length;
+            const ncC       = Object.values(ctrlItems).filter(v => v.statut === "non_conforme").length;
+            const doneC     = Object.values(ctrlItems).filter(v => v.statut !== "non_verifie").length;
+            return (
+              <>
+                <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+                  <Badge bg={GRL} color={GR}>{conformeC} conforme{conformeC > 1 ? "s" : ""}</Badge>
+                  {ncC > 0 && <Badge bg={RDL} color={RD}>{ncC} non-conforme{ncC > 1 ? "s" : ""}</Badge>}
+                  <Badge bg={C3} color={T4}>{totalItems - doneC} non vérifié{totalItems - doneC > 1 ? "s" : ""}</Badge>
+                </div>
+                {ncC > 0 && (
+                  <div style={{ fontSize: 12, color: RD, fontWeight: 600, marginBottom: 12, padding: "8px 12px", background: "#fff", borderRadius: 8, border: `1px solid ${RD}30`, display: "flex", alignItems: "center", gap: 8 }}>
+                    {Ico.alert} {ncC} non-conformité{ncC > 1 ? "s" : ""} sera{ncC > 1 ? "ont" : ""} créée{ncC > 1 ? "s" : ""} automatiquement.
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Btn outline color={T3} small onClick={() => submitControle("brouillon")} disabled={saving}>Brouillon</Btn>
+                  <Btn color={GR} onClick={() => submitControle("valide")} disabled={saving} style={{ flex: 1 }}>
+                    {Ico.check} {saving ? "Enregistrement…" : "Valider le contrôle"}
+                  </Btn>
+                </div>
+              </>
+            );
+          })()}
         </Card>
       </div>
     );
@@ -493,7 +535,7 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
             </div>
           )}
 
-          {CHECKLIST.map(section => {
+          {checklistData.map(section => {
             const sItems = (viewCtrl.items || []).filter(i => section.items.includes(i.label));
             const ncS = sItems.filter(i => i.statut === "non_conforme").length;
             return (
@@ -581,56 +623,103 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
   };
 
   // ════════════════════════════════════════
-  // NON-CONFORMITÉS
+  // NON-CONFORMITÉS — groupées par technicien
   // ════════════════════════════════════════
-  const renderNC = () => (
-    <div>
-      <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", paddingBottom: 4 }}>
-        {[{ id: "", label: `Toutes (${nonConformites.length})` }, ...NC_STATUTS.map(s => ({ id: s.id, label: `${s.label} (${nonConformites.filter(n => n.statut === s.id).length})` }))].map(f => (
-          <button key={f.id} onClick={() => setNcStatutFilter(f.id)}
-            style={{ padding: "6px 14px", borderRadius: 20, fontSize: 11, fontWeight: 700, border: "none", cursor: "pointer", whiteSpace: "nowrap", fontFamily: FF, transition: "all .12s", background: ncStatutFilter === f.id ? O : C2, color: ncStatutFilter === f.id ? "#fff" : T3 }}>
-            {f.label}
-          </button>
-        ))}
-      </div>
+  const renderNC = () => {
+    // Techs ayant des NCs dans le filtre courant
+    const techsWithNC = [...new Set(filtNC.map(n => n.techNom).filter(Boolean))];
 
-      {filtNC.length === 0
-        ? <Card style={{ textAlign: "center", padding: "40px 20px" }}>
+    return (
+      <div>
+        {/* Filtres statuts */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", paddingBottom: 4 }}>
+          {[{ id: "", label: `Toutes (${nonConformites.length})` }, ...NC_STATUTS.map(s => ({ id: s.id, label: `${s.label} (${nonConformites.filter(n => n.statut === s.id).length})` }))].map(f => (
+            <button key={f.id} onClick={() => setNcStatutFilter(f.id)}
+              style={{ padding: "6px 14px", borderRadius: 20, fontSize: 11, fontWeight: 700, border: "none", cursor: "pointer", whiteSpace: "nowrap", fontFamily: FF, transition: "all .12s", background: ncStatutFilter === f.id ? O : C2, color: ncStatutFilter === f.id ? "#fff" : T3 }}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {filtNC.length === 0 ? (
+          <Card style={{ textAlign: "center", padding: "40px 20px" }}>
             <div style={{ width: 48, height: 48, borderRadius: 14, background: C3, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", color: T5 }}>{Ico.nc}</div>
             <div style={{ fontSize: 13, color: T4 }}>Aucune non-conformité</div>
           </Card>
-        : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {filtNC.map(nc => {
-              const st = NC_STATUTS.find(s => s.id === nc.statut) || NC_STATUTS[0];
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {techsWithNC.map(tech => {
+              const techNCs  = filtNC.filter(n => n.techNom === tech);
+              const expanded = ncExpandedTechs.has(tech);
+              const cA = techNCs.filter(n => n.statut === "a_traiter").length;
+              const cE = techNCs.filter(n => n.statut === "en_cours").length;
+              const cR = techNCs.filter(n => n.statut === "resolu").length;
+              const hasOpen = cA + cE > 0;
+
               return (
-                <Card key={nc.id} style={{ border: `1.5px solid ${st.color}25` }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
-                        <Badge bg={st.bg} color={st.color}>{st.label}</Badge>
-                        <span style={{ fontSize: 10, color: T5 }}>{fmtDate(nc.date)}</span>
-                        {nc.techNom && <span style={{ fontSize: 10, fontWeight: 700, color: T4 }}>{nc.techNom}</span>}
-                        {nc.vehicule && <span style={{ fontSize: 10, color: T4 }}>{nc.vehicule}</span>}
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: T1, marginBottom: nc.description ? 4 : 0 }}>{nc.label}</div>
-                      {nc.description && <div style={{ fontSize: 12, color: T3, fontStyle: "italic", lineHeight: 1.5 }}>{nc.description}</div>}
+                <Card key={tech} style={{ border: `1.5px solid ${hasOpen ? RD + "30" : C2}`, padding: 0, overflow: "hidden" }}>
+                  {/* En-tête technicien — cliquable pour déplier */}
+                  <div onClick={() => toggleNCTech(tech)}
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", cursor: "pointer", transition: "background .1s", background: expanded ? C3 : C1 }}
+                    onMouseEnter={e => e.currentTarget.style.background = C3}
+                    onMouseLeave={e => e.currentTarget.style.background = expanded ? C3 : C1}>
+                    {/* Avatar */}
+                    <div style={{ width: 38, height: 38, borderRadius: 12, background: hasOpen ? RDL : GRL, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: hasOpen ? RD : GR, flexShrink: 0 }}>
+                      {(tech || "?").charAt(0).toUpperCase()}
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
-                      {NC_STATUTS.filter(s => s.id !== nc.statut).map(s => (
-                        <button key={s.id} onClick={() => updateNCStatut(nc.id, s.id)}
-                          style={{ padding: "4px 10px", borderRadius: 6, fontSize: 10, fontWeight: 700, border: `1px solid ${s.color}`, background: "transparent", color: s.color, cursor: "pointer", fontFamily: FF, whiteSpace: "nowrap" }}>
-                          → {s.label}
-                        </button>
-                      ))}
+                    {/* Nom + compteurs */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: T1, marginBottom: 5 }}>{tech}</div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {cA > 0 && <Badge bg={RDL} color={RD}>{cA} à traiter</Badge>}
+                        {cE > 0 && <Badge bg={ORL} color={OR}>{cE} en cours</Badge>}
+                        {cR > 0 && <Badge bg={GRL} color={GR}>{cR} résolu{cR > 1 ? "s" : ""}</Badge>}
+                      </div>
+                    </div>
+                    {/* Total + chevron */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: T4, fontFamily: FM }}>{techNCs.length}</span>
+                      <span style={{ color: T5 }}>{expanded ? Ico.chevUp : Ico.chevDown}</span>
                     </div>
                   </div>
+
+                  {/* Liste des NCs dépliée */}
+                  {expanded && (
+                    <div style={{ borderTop: `1px solid ${C2}`, padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+                      {techNCs.map(nc => {
+                        const st = NC_STATUTS.find(s => s.id === nc.statut) || NC_STATUTS[0];
+                        return (
+                          <div key={nc.id} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 12px", borderRadius: 10, background: st.bg, border: `1px solid ${st.color}25` }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5, flexWrap: "wrap" }}>
+                                <Badge bg={st.bg} color={st.color}>{st.label}</Badge>
+                                <span style={{ fontSize: 10, color: T5 }}>{fmtDate(nc.date)}</span>
+                                {nc.vehicule && <span style={{ fontSize: 10, color: T4 }}>{nc.vehicule}</span>}
+                              </div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: T1 }}>{nc.label}</div>
+                              {nc.description && <div style={{ fontSize: 11, color: T3, fontStyle: "italic", marginTop: 3, lineHeight: 1.5 }}>{nc.description}</div>}
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
+                              {NC_STATUTS.filter(s => s.id !== nc.statut).map(s => (
+                                <button key={s.id} onClick={e => { e.stopPropagation(); updateNCStatut(nc.id, s.id); }}
+                                  style={{ padding: "4px 10px", borderRadius: 6, fontSize: 10, fontWeight: 700, border: `1px solid ${s.color}`, background: "transparent", color: s.color, cursor: "pointer", fontFamily: FF, whiteSpace: "nowrap" }}>
+                                  → {s.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </Card>
               );
             })}
           </div>
-      }
-    </div>
-  );
+        )}
+      </div>
+    );
+  };
 
   // ════════════════════════════════════════
   // STATS
@@ -665,7 +754,7 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
           <Card>
             <div style={{ fontSize: 11, fontWeight: 700, color: T3, textTransform: "uppercase", letterSpacing: 1, marginBottom: 14 }}>Par technicien</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {byTech.map((t, i) => (
+              {byTech.map(t => (
                 <div key={t.nom} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 28, height: 28, borderRadius: 14, background: OL, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: O, flexShrink: 0 }}>
                     {(t.nom || "?").charAt(0).toUpperCase()}
@@ -689,6 +778,67 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     );
   };
 
+  // ════════════════════════════════════════
+  // PARAMÈTRES — édition de la checklist
+  // ════════════════════════════════════════
+  const renderParams = () => (
+    <div>
+      <div style={{ fontSize: 13, color: T3, marginBottom: 16, lineHeight: 1.6, padding: "10px 14px", background: OL, borderRadius: 10, border: `1px solid ${O}30` }}>
+        Ajoute ou supprime des éléments dans chaque section de la checklist. Les modifications s'appliquent aux prochains contrôles.
+      </div>
+
+      {checklistData.map((section, sIdx) => (
+        <Card key={section.section} style={{ marginBottom: 12 }}>
+          {/* En-tête section */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 10, borderBottom: `1px solid ${C2}` }}>
+            <div style={{ width: 10, height: 10, borderRadius: "50%", background: section.color, flexShrink: 0 }} />
+            <div style={{ fontSize: 13, fontWeight: 800, color: T1, flex: 1 }}>{section.section}</div>
+            <span style={{ fontSize: 10, color: T5, fontFamily: FM }}>{section.items.length} pts</span>
+          </div>
+
+          {/* Liste des éléments */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
+            {section.items.map((item, iIdx) => (
+              <div key={item + iIdx} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: C3, border: `1px solid ${C2}` }}>
+                <div style={{ width: 4, height: 4, borderRadius: "50%", background: section.color, flexShrink: 0 }} />
+                <span style={{ flex: 1, fontSize: 12, color: T1 }}>{item}</span>
+                <button
+                  onClick={() => askConfirm(
+                    "Supprimer cet élément ?",
+                    `"${item}" sera retiré de la checklist.`,
+                    () => removeChecklistItem(sIdx, iIdx),
+                    "Supprimer", RD
+                  )}
+                  style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${RD}30`, background: RDL, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: RD, flexShrink: 0, padding: 0 }}>
+                  {Ico.x}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Ajouter un élément */}
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={paramNewItem[sIdx] || ""}
+              onChange={e => setParamNewItem(p => ({ ...p, [sIdx]: e.target.value }))}
+              onKeyDown={e => e.key === "Enter" && addChecklistItem(sIdx)}
+              placeholder={`Ajouter un élément dans "${section.section}"…`}
+              style={{ ...sInp, flex: 1, fontSize: 12 }}
+              onFocus={e => e.target.style.borderColor = section.color}
+              onBlur={e => e.target.style.borderColor = C2}
+            />
+            <button
+              onClick={() => addChecklistItem(sIdx)}
+              disabled={!(paramNewItem[sIdx] || "").trim()}
+              style={{ width: 38, height: 38, borderRadius: 8, background: (paramNewItem[sIdx] || "").trim() ? section.color : C2, border: "none", cursor: (paramNewItem[sIdx] || "").trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", flexShrink: 0, transition: "background .15s" }}>
+              {Ico.plus}
+            </button>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+
   // ─── Confirmation modal ───
   const renderConfirm = () => !confirmDlg ? null : (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px" }}>
@@ -707,10 +857,11 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
 
   // ─── Sub-nav ───
   const subTabs = [
-    { id: "accueil",    label: "Accueil",         ico: Ico.plus    },
-    { id: "historique", label: "Historique",      ico: Ico.history },
-    { id: "nc",         label: "Non-conformités", ico: Ico.nc      },
-    { id: "stats",      label: "Stats",           ico: Ico.stats   },
+    { id: "accueil",    label: "Accueil",          ico: Ico.plus    },
+    { id: "historique", label: "Historique",       ico: Ico.history },
+    { id: "nc",         label: "Non-conformités",  ico: Ico.nc      },
+    { id: "stats",      label: "Stats",            ico: Ico.stats   },
+    ...(isAdmin ? [{ id: "params", label: "Paramètres", ico: Ico.settings }] : []),
   ];
 
   return (
@@ -739,6 +890,7 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
       {ctrlSub === "historique" && renderHistorique()}
       {ctrlSub === "nc"         && renderNC()}
       {ctrlSub === "stats"      && renderStats()}
+      {ctrlSub === "params"     && renderParams()}
     </div>
   );
 }
