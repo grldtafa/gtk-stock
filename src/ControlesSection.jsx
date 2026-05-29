@@ -123,6 +123,7 @@ const Ico = {
   x:        IcoSvg(<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>, 13),
   print:    IcoSvg(<><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></>, 14),
   mail:     IcoSvg(<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>, 14),
+  pencil:   IcoSvg(<><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>, 13),
 };
 
 // ─── Mini-composants ───
@@ -171,7 +172,8 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
   const [ncExpandedTechs, setNcExpandedTechs] = useState(new Set());
 
   // Paramètres checklist
-  const [paramNewItem, setParamNewItem] = useState({}); // { sectionIndex: "texte" }
+  const [paramNewItem,  setParamNewItem]  = useState({}); // { sectionIndex: "texte" }
+  const [paramEditItem, setParamEditItem] = useState(null); // { key: "sIdx-iIdx", value: "..." }
 
   // Confirmation
   const [confirmDlg, setConfirmDlg] = useState(null);
@@ -281,6 +283,18 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     setChecklistData(newCL);
     await save(null, null, newCL);
     onToast("Élément supprimé");
+  };
+
+  const renameChecklistItem = async (sectionIdx, itemIdx, newText) => {
+    const text = newText.trim();
+    if (!text) { setParamEditItem(null); return; }
+    const newCL = checklistData.map((s, i) => i === sectionIdx
+      ? { ...s, items: s.items.map((it, j) => j === itemIdx ? text : it) }
+      : s);
+    setChecklistData(newCL);
+    setParamEditItem(null);
+    await save(null, null, newCL);
+    onToast("Élément modifié");
   };
 
   // ── Calculs ──
@@ -1098,7 +1112,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;
   const renderParams = () => (
     <div>
       <div style={{ fontSize: 13, color: T3, marginBottom: 16, lineHeight: 1.6, padding: "10px 14px", background: OL, borderRadius: 10, border: `1px solid ${O}30` }}>
-        Ajoute ou supprime des éléments dans chaque section de la checklist. Les modifications s'appliquent aux prochains contrôles.
+        Ajoute, modifie ou supprime des éléments dans chaque section. Clique sur ✏️ pour renommer un élément (ou double-clic dessus). Les modifications s'appliquent aux prochains contrôles.
       </div>
 
       {checklistData.map((section, sIdx) => (
@@ -1112,22 +1126,72 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;
 
           {/* Liste des éléments */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
-            {section.items.map((item, iIdx) => (
-              <div key={item + iIdx} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: C3, border: `1px solid ${C2}` }}>
-                <div style={{ width: 4, height: 4, borderRadius: "50%", background: section.color, flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 12, color: T1 }}>{item}</span>
-                <button
-                  onClick={() => askConfirm(
-                    "Supprimer cet élément ?",
-                    `"${item}" sera retiré de la checklist.`,
-                    () => removeChecklistItem(sIdx, iIdx),
-                    "Supprimer", RD
+            {section.items.map((item, iIdx) => {
+              const editKey  = `${sIdx}-${iIdx}`;
+              const isEditing = paramEditItem?.key === editKey;
+              return (
+                <div key={item + iIdx} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: isEditing ? OL : C3, border: `1px solid ${isEditing ? O : C2}`, transition: "all .1s" }}>
+                  <div style={{ width: 4, height: 4, borderRadius: "50%", background: section.color, flexShrink: 0 }} />
+
+                  {isEditing ? (
+                    <input
+                      autoFocus
+                      value={paramEditItem.value}
+                      onChange={e => setParamEditItem(p => ({ ...p, value: e.target.value }))}
+                      onKeyDown={e => {
+                        if (e.key === "Enter")  renameChecklistItem(sIdx, iIdx, paramEditItem.value);
+                        if (e.key === "Escape") setParamEditItem(null);
+                      }}
+                      onBlur={() => {
+                        const trimmed = paramEditItem.value.trim();
+                        if (trimmed && trimmed !== item) renameChecklistItem(sIdx, iIdx, paramEditItem.value);
+                        else setParamEditItem(null);
+                      }}
+                      style={{ ...sInp, flex: 1, fontSize: 12, padding: "4px 8px", border: `1.5px solid ${O}`, borderRadius: 6 }}
+                    />
+                  ) : (
+                    <span
+                      style={{ flex: 1, fontSize: 12, color: T1, cursor: "text" }}
+                      onDoubleClick={() => setParamEditItem({ key: editKey, value: item })}>
+                      {item}
+                    </span>
                   )}
-                  style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${RD}30`, background: RDL, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: RD, flexShrink: 0, padding: 0 }}>
-                  {Ico.x}
-                </button>
-              </div>
-            ))}
+
+                  {/* Bouton crayon (modifier) — masqué en mode édition */}
+                  {isEditing ? (
+                    <button
+                      onMouseDown={e => e.preventDefault()} // évite blur avant click
+                      onClick={() => renameChecklistItem(sIdx, iIdx, paramEditItem.value)}
+                      title="Valider"
+                      style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${GR}40`, background: GRL, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: GR, flexShrink: 0, padding: 0 }}>
+                      {Ico.check}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setParamEditItem({ key: editKey, value: item })}
+                      title="Modifier"
+                      style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${O}30`, background: OL, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: O, flexShrink: 0, padding: 0 }}>
+                      {Ico.pencil}
+                    </button>
+                  )}
+
+                  {/* Bouton supprimer — toujours visible sauf en édition */}
+                  {!isEditing && (
+                    <button
+                      onClick={() => askConfirm(
+                        "Supprimer cet élément ?",
+                        `"${item}" sera retiré de la checklist.`,
+                        () => removeChecklistItem(sIdx, iIdx),
+                        "Supprimer", RD
+                      )}
+                      title="Supprimer"
+                      style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${RD}30`, background: RDL, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: RD, flexShrink: 0, padding: 0 }}>
+                      {Ico.x}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* Ajouter un élément */}
