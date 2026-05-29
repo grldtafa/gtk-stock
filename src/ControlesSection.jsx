@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import emailjs from "@emailjs/browser";
 import { saveAppState } from "./db.js";
 import { supabase } from "./supabase.js";
 
@@ -120,6 +121,8 @@ const Ico = {
   chevDown: IcoSvg(<><polyline points="6 9 12 15 18 9"/></>, 14),
   chevUp:   IcoSvg(<><polyline points="18 15 12 9 6 15"/></>, 14),
   x:        IcoSvg(<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>, 13),
+  print:    IcoSvg(<><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></>, 14),
+  mail:     IcoSvg(<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>, 14),
 };
 
 // ─── Mini-composants ───
@@ -242,6 +245,7 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     await save(updC, updN); setSaving(false);
     onToast(`Contrôle enregistré${newNCs.length > 0 ? ` · ${newNCs.length} NC créée${newNCs.length > 1 ? "s" : ""}` : ""}`);
     if (newNCs.length > 0) onToast(`${newNCs.length} non-conformité${newNCs.length > 1 ? "s" : ""} à traiter`, "warn");
+    if (statut === "valide") sendControleEmail(newCtrl);
     setCtrlSub("historique");
   };
 
@@ -288,6 +292,141 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     next.has(tech) ? next.delete(tech) : next.add(tech);
     return next;
   });
+
+  // ════════════════════════════════════════
+  // PDF
+  // ════════════════════════════════════════
+  const printControlePDF = (ctrl) => {
+    const logoUrl = `${window.location.origin}/LOGO.png`;
+    const items   = ctrl.items || [];
+    const conformes = items.filter(i => i.statut === "conforme").length;
+    const ncs       = items.filter(i => i.statut === "non_conforme").length;
+    const total     = items.length;
+    const pct       = total > 0 ? Math.round((conformes / total) * 100) : 0;
+
+    const sectionsHTML = checklistData.map(section => {
+      const sItems = items.filter(i => section.items.includes(i.label));
+      if (!sItems.length) return "";
+      const ncS = sItems.filter(i => i.statut === "non_conforme").length;
+      const rows = sItems.map(item => {
+        const ok = item.statut === "conforme";
+        const nc = item.statut === "non_conforme";
+        const ico    = ok ? "✅" : nc ? "❌" : "⬜";
+        const cls    = ok ? "conforme" : nc ? "nc" : "unverif";
+        const sColor = ok ? "#16a34a" : nc ? "#dc2626" : "#94a3b8";
+        const sLabel = ok ? "Conforme" : nc ? "Non conforme" : "Non vérifié";
+        const cmmt   = item.commentaire ? `<div class="item-comment">→ ${item.commentaire}</div>` : "";
+        return `<div class="item ${cls}">
+          <span class="item-ico">${ico}</span>
+          <div style="flex:1"><div class="item-lbl">${item.label}</div>${cmmt}</div>
+          <span class="item-st" style="color:${sColor}">${sLabel}</span>
+        </div>`;
+      }).join("");
+      return `<div class="section">
+        <div class="sec-head" style="background:${section.color}">
+          <span>${section.section}</span>
+          <span class="sec-pts">${sItems.length} pts${ncS > 0 ? ` · ${ncS} N.C.` : ""}</span>
+        </div>${rows}
+      </div>`;
+    }).join("");
+
+    const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<title>Contrôle — ${ctrl.techNom} — ${fmtDate(ctrl.date)}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-size:12px}
+.header{display:flex;align-items:center;gap:18px;padding:16px 28px 12px;border-bottom:3px solid #FC7701;margin-bottom:16px}
+.logo{height:42px;object-fit:contain}
+.htitle{font-size:19px;font-weight:900;color:#0f172a}
+.hsub{font-size:11px;color:#64748b;margin-top:2px}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;margin-left:8px}
+.badge-ok{background:#f0fdf4;color:#16a34a}
+.badge-nc{background:#fef2f2;color:#dc2626}
+.meta{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;padding:0 28px 14px}
+.mc{background:#f4f7fa;border-radius:7px;padding:9px 12px}
+.ml{font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px}
+.mv{font-size:13px;font-weight:700;color:#0f172a;margin-top:2px}
+.sumbar{display:flex;gap:16px;padding:10px 28px;background:#f4f7fa;border-top:1px solid #e8edf3;border-bottom:1px solid #e8edf3;margin-bottom:16px;align-items:center}
+.snum{font-size:20px;font-weight:900;font-family:monospace}
+.slbl{font-size:9px;color:#64748b;margin-top:1px}
+.section{margin:0 28px 10px;page-break-inside:avoid}
+.sec-head{display:flex;align-items:center;justify-content:space-between;padding:6px 11px;border-radius:5px;font-size:11px;font-weight:800;color:#fff;margin-bottom:5px}
+.sec-pts{font-size:9px;opacity:.85}
+.item{display:flex;align-items:flex-start;gap:7px;padding:5px 9px;border-radius:4px;margin-bottom:3px;border:1px solid #e8edf3}
+.item.conforme{background:#f0fdf4;border-color:#16a34a20}
+.item.nc{background:#fef2f2;border-color:#dc262620}
+.item.unverif{background:#f9fafb}
+.item-ico{font-size:12px;flex-shrink:0;line-height:1.5}
+.item-lbl{font-size:11px;color:#0f172a;line-height:1.4}
+.item-comment{font-size:9px;color:#64748b;font-style:italic;margin-top:1px}
+.item-st{font-size:9px;font-weight:700;flex-shrink:0;align-self:center;white-space:nowrap}
+.footer{padding:12px 28px;border-top:1px solid #e8edf3;text-align:center;font-size:9px;color:#94a3b8;margin-top:14px}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<div class="header">
+  <img src="${logoUrl}" class="logo" alt="GTK" onerror="this.style.display='none'"/>
+  <div>
+    <div class="htitle">Fiche de contrôle technicien
+      <span class="badge ${ncs > 0 ? "badge-nc" : "badge-ok"}">${ncs > 0 ? `${ncs} non-conformité${ncs > 1 ? "s" : ""}` : "✓ Tout conforme"}</span>
+    </div>
+    <div class="hsub">GTK Réseaux · Contrôle sécurité &amp; équipements</div>
+  </div>
+</div>
+<div class="meta">
+  <div class="mc"><div class="ml">Date</div><div class="mv">${fmtDate(ctrl.date)}</div></div>
+  <div class="mc"><div class="ml">Technicien</div><div class="mv">${ctrl.techNom || "—"}</div></div>
+  <div class="mc"><div class="ml">Véhicule</div><div class="mv">${ctrl.vehicule || "—"}</div></div>
+  <div class="mc"><div class="ml">Contrôleur</div><div class="mv">${ctrl.controleur || "—"}</div></div>
+</div>
+<div class="sumbar">
+  <div><div class="snum" style="color:#16a34a">${conformes}</div><div class="slbl">Conforme${conformes > 1 ? "s" : ""}</div></div>
+  <div style="color:#e8edf3;font-size:18px">·</div>
+  <div><div class="snum" style="color:${ncs > 0 ? "#dc2626" : "#94a3b8"}">${ncs}</div><div class="slbl">Non conforme${ncs > 1 ? "s" : ""}</div></div>
+  <div style="color:#e8edf3;font-size:18px">·</div>
+  <div><div class="snum" style="color:#94a3b8">${total - conformes - ncs}</div><div class="slbl">Non vérifié${total - conformes - ncs > 1 ? "s" : ""}</div></div>
+  <div style="margin-left:auto;font-size:22px;font-weight:900;color:#FC7701">${pct}%</div>
+</div>
+${sectionsHTML}
+<div class="footer">Généré le ${new Date().toLocaleDateString("fr-FR",{weekday:"long",year:"numeric",month:"long",day:"numeric"})} · GTK Réseaux · GTK Stock</div>
+</body></html>`;
+
+    const win = window.open("", "_blank", "width=920,height=720");
+    if (!win) { onToast("Autorisez les pop-ups pour générer le PDF", "warn"); return; }
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 600);
+  };
+
+  // ════════════════════════════════════════
+  // EMAIL AUTO
+  // ════════════════════════════════════════
+  const sendControleEmail = async (ctrl) => {
+    const EJS_SVC = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+    const EJS_TPL = import.meta.env.VITE_EMAILJS_CONTROLE_TPL;
+    const EJS_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+    if (!EJS_SVC || !EJS_TPL || !EJS_KEY) return; // non configuré → silencieux
+    try {
+      const items   = ctrl.items || [];
+      const conformes = items.filter(i => i.statut === "conforme").length;
+      const total     = items.length;
+      const ncLines   = items
+        .filter(i => i.statut === "non_conforme")
+        .map(i => `• ${i.label}${i.commentaire ? " : " + i.commentaire : ""}`)
+        .join("\n");
+      await emailjs.send(EJS_SVC, EJS_TPL, {
+        tech_nom:   ctrl.techNom  || "—",
+        vehicule:   ctrl.vehicule || "—",
+        date:       fmtDate(ctrl.date),
+        controleur: ctrl.controleur || "—",
+        score:      `${conformes}/${total} · ${total > 0 ? Math.round((conformes/total)*100) : 0}%`,
+        nc_count:   String(ctrl.ncCount || 0),
+        nc_items:   ncLines || "Aucune non-conformité ✓",
+      }, EJS_KEY);
+    } catch (e) {
+      console.error("Erreur envoi email contrôle:", e);
+    }
+  };
 
   // ── Input style ──
   const sInp = { background: C1, border: `1.5px solid ${C2}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, color: T1, fontFamily: FF, outline: "none", width: "100%", boxSizing: "border-box" };
@@ -525,6 +664,11 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
             <Badge bg={viewCtrl.statut === "valide" ? GRL : ORL} color={viewCtrl.statut === "valide" ? GR : OR}>
               {viewCtrl.statut === "valide" ? "Validé" : "Brouillon"}
             </Badge>
+            <button onClick={() => printControlePDF(viewCtrl)}
+              title="Générer PDF"
+              style={{ background: OL, border: `1px solid ${O}30`, borderRadius: 6, cursor: "pointer", color: O, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+              {Ico.print}
+            </button>
             {isAdmin && (
               <button onClick={() => askConfirm("Supprimer ce contrôle ?", "Les non-conformités associées seront également supprimées.", () => deleteControle(viewCtrl.id))}
                 style={{ background: RDL, border: `1px solid ${RD}20`, borderRadius: 6, cursor: "pointer", color: RD, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
@@ -600,14 +744,12 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
               {filtHistorique.map(c => {
                 const ncP = nonConformites.filter(n => n.controleId === c.id && n.statut !== "resolu").length;
                 return (
-                  <div key={c.id} onClick={() => setViewCtrl(c)}
-                    style={{ background: C1, border: `1.5px solid ${ncP > 0 ? RD + "40" : C2}`, borderRadius: 12, padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, transition: "all .12s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = C3}
-                    onMouseLeave={e => e.currentTarget.style.background = C1}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: OL, display: "flex", alignItems: "center", justifyContent: "center", color: O, fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
+                  <div key={c.id}
+                    style={{ background: C1, border: `1.5px solid ${ncP > 0 ? RD + "40" : C2}`, borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, transition: "all .12s" }}>
+                    <div onClick={() => setViewCtrl(c)} style={{ width: 40, height: 40, borderRadius: 12, background: OL, display: "flex", alignItems: "center", justifyContent: "center", color: O, fontWeight: 800, fontSize: 14, flexShrink: 0, cursor: "pointer" }}>
                       {(c.techNom || "?").charAt(0).toUpperCase()}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div onClick={() => setViewCtrl(c)} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: T1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.techNom || "—"}{c.vehicule ? ` · ${c.vehicule}` : ""}</div>
                       <div style={{ fontSize: 11, color: T4, marginTop: 2 }}>{fmtDate(c.date)} · {c.controleur}</div>
                     </div>
@@ -617,6 +759,11 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
                       <Badge bg={c.statut === "valide" ? GRL : ORL} color={c.statut === "valide" ? GR : OR}>
                         {c.statut === "valide" ? "Validé" : "Brouillon"}
                       </Badge>
+                      <button onClick={e => { e.stopPropagation(); printControlePDF(c); }}
+                        title="PDF"
+                        style={{ width: 28, height: 28, borderRadius: 6, background: OL, border: `1px solid ${O}30`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: O, padding: 0, flexShrink: 0 }}>
+                        {Ico.print}
+                      </button>
                     </div>
                   </div>
                 );
