@@ -206,10 +206,28 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
 
   const save = async (newC, newN, newCL) => {
     try {
+      // ── Fusion avec l'état DB pour ne pas écraser les contrôles d'autres utilisateurs ──
+      const { data: existing } = await supabase
+        .from("app_state").select("data").eq("key", "gtk-controles").single();
+
+      const localC  = newC  ?? controles;
+      const localN  = newN  ?? nonConformites;
+      const localCL = newCL ?? checklistData;
+
+      // Contrôles : garder ceux du DB absents en local (ajoutés par un autre user)
+      const dbControles = existing?.data?.controles || [];
+      const localCIds   = new Set(localC.map(c => c.id));
+      const mergedC     = [...localC, ...dbControles.filter(c => !localCIds.has(c.id))];
+
+      // Non-conformités : même logique
+      const dbNCs     = existing?.data?.nonConformites || [];
+      const localNIds = new Set(localN.map(n => n.id));
+      const mergedN   = [...localN, ...dbNCs.filter(n => !localNIds.has(n.id))];
+
       await saveAppState("gtk-controles", {
-        controles:      newC  ?? controles,
-        nonConformites: newN  ?? nonConformites,
-        checklistData:  newCL ?? checklistData,
+        controles:      mergedC,
+        nonConformites: mergedN,
+        checklistData:  localCL,
       });
     } catch (e) { onToast("Erreur sauvegarde", "err"); }
   };
