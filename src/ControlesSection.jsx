@@ -126,6 +126,7 @@ const Ico = {
   pencil:   IcoSvg(<><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>, 13),
   grip:     IcoSvg(<><circle cx="9" cy="6"  r="1.3" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="6"  r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"/></>, 14),
   sortAZ:   IcoSvg(<><line x1="3" y1="5" x2="12" y2="5"/><line x1="3" y1="10" x2="9" y2="10"/><line x1="3" y1="15" x2="6" y2="15"/><polyline points="16 3 16 21"/><polyline points="12 17 16 21 20 17"/></>, 13),
+  camera:   IcoSvg(<><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></>, 15),
 };
 
 // ─── Mini-composants ───
@@ -156,13 +157,15 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
   const [dataLoaded,     setDataLoaded]     = useState(false);
 
   // Form
-  const [ctrlDate,       setCtrlDate]       = useState(todayStr());
+  const [ctrlDate,        setCtrlDate]        = useState(todayStr());
   const [ctrlControleur, setCtrlControleur] = useState(currentUser?.name || "");
   const [ctrlTech,       setCtrlTech]       = useState("");
   const [ctrlVehicule,   setCtrlVehicule]   = useState("");
-  const [ctrlItems,      setCtrlItems]      = useState({});
-  const [openComments,   setOpenComments]   = useState({});
-  const [saving,         setSaving]         = useState(false);
+  const [ctrlItems,        setCtrlItems]        = useState({});
+  const [ctrlPhotos,       setCtrlPhotos]       = useState({}); // { label: base64 }
+  const [pendingPhotoItem, setPendingPhotoItem] = useState(null); // label en attente de photo
+  const [openComments,     setOpenComments]     = useState({});
+  const [saving,           setSaving]           = useState(false);
 
   // Historique
   const [histSearch, setHistSearch] = useState("");
@@ -211,11 +214,39 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     } catch (e) { onToast("Erreur sauvegarde", "err"); }
   };
 
+  // ── Redimensionne une photo côté client avant stockage ──
+  const resizeImage = (file, maxPx = 600) => new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const ratio = Math.min(maxPx / img.width, maxPx / img.height, 1);
+        const canvas = document.createElement("canvas");
+        canvas.width  = Math.round(img.width  * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.65));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  const handlePhotoCapture = async (label, file) => {
+    if (!file) return;
+    const b64 = await resizeImage(file);
+    setCtrlPhotos(p => ({ ...p, [label]: b64 }));
+    setItemStatut(label, "conforme");
+    setPendingPhotoItem(null);
+  };
+
   // ── Init form ──
   const initForm = () => {
     const items = {};
     checklistData.forEach(s => s.items.forEach(label => { items[label] = { statut: "non_verifie", commentaire: "" }; }));
     setCtrlItems(items);
+    setCtrlPhotos({});
+    setPendingPhotoItem(null);
     setCtrlDate(todayStr());
     setCtrlControleur(currentUser?.name || "");
     setCtrlTech(""); setCtrlVehicule("");
@@ -239,7 +270,7 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     const newCtrl = {
       id, date: ctrlDate, controleur: ctrlControleur,
       techNom: ctrlTech, vehicule: ctrlVehicule, statut,
-      items: Object.entries(ctrlItems).map(([label, v]) => ({ label, ...v })),
+      items: Object.entries(ctrlItems).map(([label, v]) => ({ label, ...v, photo: ctrlPhotos[label] || null })),
       createdAt: new Date().toISOString(), ncCount: ncItems.length,
       reconvocDate,
     };
@@ -767,20 +798,39 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {section.items.map(label => {
-                const item = ctrlItems[label] || { statut: "non_verifie", commentaire: "" };
-                const isOK = item.statut === "conforme";
-                const isNC = item.statut === "non_conforme";
+                const item        = ctrlItems[label] || { statut: "non_verifie", commentaire: "" };
+                const isOK        = item.statut === "conforme";
+                const isNC        = item.statut === "non_conforme";
                 const commentOpen = openComments[label];
+                const hasPhoto    = !!ctrlPhotos[label];
+                const needsPhoto  = pendingPhotoItem === label;
                 return (
-                  <div key={label} style={{ borderRadius: 8, overflow: "hidden", border: `1px solid ${isNC ? RD + "50" : isOK ? GR + "50" : C2}`, transition: "border-color .15s" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: isNC ? RDL : isOK ? GRL : C3 }}>
+                  <div key={label} style={{ borderRadius: 8, overflow: "hidden", border: `1px solid ${isNC ? RD + "50" : isOK ? GR + "50" : needsPhoto ? O + "80" : C2}`, transition: "border-color .15s" }}>
+                    {/* Ligne principale */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: isNC ? RDL : isOK ? GRL : needsPhoto ? OL : C3 }}>
                       <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: T1, lineHeight: 1.4 }}>{label}</div>
+                      {/* Miniature photo si déjà prise */}
+                      {hasPhoto && (
+                        <img src={ctrlPhotos[label]} style={{ width: 36, height: 28, objectFit: "cover", borderRadius: 5, border: `1px solid ${GR}40`, flexShrink: 0 }} />
+                      )}
                       <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                        <button onClick={() => setItemStatut(label, isOK ? "non_verifie" : "conforme")}
-                          style={{ padding: "5px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: FF, transition: "all .1s", background: isOK ? GR : "transparent", color: isOK ? "#fff" : GR, border: `1.5px solid ${GR}` }}>
-                          ✓ Conf.
+                        {/* Bouton Conforme — déclenche la demande de photo */}
+                        <button
+                          onClick={() => {
+                            if (isOK) {
+                              // Décocher : retire le statut ET la photo
+                              setItemStatut(label, "non_verifie");
+                              setCtrlPhotos(p => { const n = {...p}; delete n[label]; return n; });
+                              setPendingPhotoItem(null);
+                            } else {
+                              setItemStatut(label, "non_conforme" === item.statut ? "non_verifie" : "non_verifie"); // reset d'abord
+                              setPendingPhotoItem(label);
+                            }
+                          }}
+                          style={{ padding: "5px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: FF, transition: "all .1s", background: isOK ? GR : needsPhoto ? O : "transparent", color: isOK || needsPhoto ? "#fff" : GR, border: `1.5px solid ${isOK ? GR : needsPhoto ? O : GR}`, display: "flex", alignItems: "center", gap: 4 }}>
+                          {isOK ? <>{Ico.check} Conf.</> : <>{Ico.camera} Conf.</>}
                         </button>
-                        <button onClick={() => setItemStatut(label, isNC ? "non_verifie" : "non_conforme")}
+                        <button onClick={() => { setItemStatut(label, isNC ? "non_verifie" : "non_conforme"); setPendingPhotoItem(null); }}
                           style={{ padding: "5px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: FF, transition: "all .1s", background: isNC ? RD : "transparent", color: isNC ? "#fff" : RD, border: `1.5px solid ${RD}` }}>
                           ✗ N.C.
                         </button>
@@ -790,6 +840,37 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
                         </button>
                       </div>
                     </div>
+
+                    {/* Zone photo requise */}
+                    {needsPhoto && !hasPhoto && (
+                      <div style={{ padding: "10px 12px", borderTop: `1px solid ${O}30`, background: OL, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: O, display: "flex", alignItems: "center", gap: 5 }}>{Ico.camera} Photo obligatoire pour valider</span>
+                        <label style={{ background: O, color: "#fff", borderRadius: 8, padding: "7px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FF, display: "flex", alignItems: "center", gap: 6 }}>
+                          {Ico.camera} Prendre / choisir une photo
+                          <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+                            onChange={e => handlePhotoCapture(label, e.target.files[0])} />
+                        </label>
+                        <button onClick={() => setPendingPhotoItem(null)}
+                          style={{ fontSize: 11, color: T4, background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}>
+                          Annuler
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Photo déjà prise — option de remplacement */}
+                    {isOK && hasPhoto && (
+                      <div style={{ padding: "6px 12px", borderTop: `1px solid ${GR}30`, background: GRL, display: "flex", alignItems: "center", gap: 10 }}>
+                        <img src={ctrlPhotos[label]} style={{ width: 52, height: 40, objectFit: "cover", borderRadius: 6, border: `1px solid ${GR}40` }} />
+                        <span style={{ fontSize: 11, color: GR, fontWeight: 600, flex: 1 }}>📷 Photo enregistrée</span>
+                        <label style={{ fontSize: 11, color: O, fontWeight: 700, cursor: "pointer" }}>
+                          Changer
+                          <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+                            onChange={e => handlePhotoCapture(label, e.target.files[0])} />
+                        </label>
+                      </div>
+                    )}
+
+                    {/* Commentaire */}
                     {(commentOpen || item.commentaire) && (
                       <div style={{ padding: "8px 12px", borderTop: `1px solid ${C2}`, background: C1 }}>
                         <textarea value={item.commentaire} onChange={e => setItemComment(label, e.target.value)}
@@ -914,6 +995,9 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: T1 }}>{item.label}</div>
                         {item.commentaire && <div style={{ fontSize: 11, color: T4, marginTop: 2, fontStyle: "italic" }}>{item.commentaire}</div>}
+                        {item.photo && (
+                          <img src={item.photo} style={{ width: 72, height: 54, objectFit: "cover", borderRadius: 6, marginTop: 5, border: `1px solid ${C2}`, display: "block" }} />
+                        )}
                       </div>
                       <span style={{ fontSize: 10, fontWeight: 700, flexShrink: 0, color: item.statut === "conforme" ? GR : item.statut === "non_conforme" ? RD : T5 }}>
                         {item.statut === "conforme" ? "Conforme" : item.statut === "non_conforme" ? "Non conforme" : "Non vérifié"}
