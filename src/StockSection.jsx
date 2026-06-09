@@ -232,6 +232,12 @@ export default function StockSection({
           ))}
         </div>
         {isAdmin && (
+          <Btn small outline color={T3} onClick={syncInventaire} title="Retire de l'inventaire les articles absents du catalogue">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+            {!isMob&&"Sync"}
+          </Btn>
+        )}
+        {isAdmin && (
           <Btn small outline color={T3} onClick={()=>exportCSV(stk,[
             {key:"nom",label:"Article"},{key:"cat",label:"Catégorie"},{key:"type",label:"Type"},
             {key:"qty",label:"Quantité"},{key:"seuil",label:"Seuil"},{key:"prix",label:"Prix unit."}
@@ -1614,14 +1620,30 @@ export default function StockSection({
     const item = catalogue.find(c=>c.id===id);
     askConfirm(
       "Supprimer du catalogue ?",
-      `"${item?.nom||"Cet article"}" sera définitivement supprimé du catalogue.`,
+      `"${item?.nom||"Cet article"}" sera supprimé du catalogue et de l'inventaire.`,
       () => {
-        const nc=catalogue.filter(c=>c.id!==id);
+        const nc = catalogue.filter(c=>c.id!==id);
         setCatalogue(nc);
-        setTimeout(()=>onSaveMeta&&onSaveMeta(),300);
-        onToast("Article supprimé du catalogue");
+        // Supprimer aussi de l'inventaire
+        if(item?.nom) {
+          const ns = stk.filter(s=>s.nom!==item.nom);
+          if(ns.length!==stk.length){ setStk(ns); onSaveStock&&onSaveStock(ns); }
+        }
+        onSaveMeta&&onSaveMeta({catalogue:nc});
+        onToast("Article supprimé du catalogue et de l'inventaire");
       }
     );
+  };
+
+  // Synchronisation manuelle inventaire ↔ catalogue
+  const syncInventaire = () => {
+    const catNames = new Set(catalogue.map(c=>c.nom.toLowerCase()));
+    const clean = stk.filter(s=>catNames.has(s.nom?.toLowerCase()));
+    const retires = stk.length - clean.length;
+    if(retires===0){ onToast("Inventaire déjà synchronisé — aucun écart"); return; }
+    setStk(clean);
+    onSaveStock&&onSaveStock(clean);
+    onToast(`${retires} article${retires>1?"s":""} retiré${retires>1?"s":""} de l'inventaire`);
   };
   const filtCat=catalogue.filter(c=>!catSearch||c.nom?.toLowerCase().includes(catSearch.toLowerCase())||c.cat?.toLowerCase().includes(catSearch.toLowerCase()));
   const catGroups=[...new Set(catalogue.map(c=>c.cat||""))].filter(Boolean).sort();
