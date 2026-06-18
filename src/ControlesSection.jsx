@@ -207,7 +207,8 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
             ...c, items: (c.items || []).map(({ photo: _p, ...rest }) => rest),
           }));
           setControles(stripped);
-          // Background migration: move embedded photos to separate app_state keys
+          // Migration en arrière-plan : déplace les photos vers des clés séparées
+          // puis réécrit la clé principale sans photos pour que les prochains chargements soient rapides
           if (hasEmbedded) {
             (async () => {
               const cache = {};
@@ -220,6 +221,14 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
                 }
               }
               if (Object.keys(cache).length > 0) setPhotosCache(cache);
+              // Réécriture de la clé principale sans photos — chargements suivants ultra-rapides
+              try {
+                await saveAppState("gtk-controles", {
+                  controles:      stripped,
+                  nonConformites: data.data.nonConformites || [],
+                  checklistData:  data.data.checklistData  || DEFAULT_CHECKLIST,
+                });
+              } catch (e) { console.error("Migration nettoyage clé principale:", e); }
             })();
           }
         }
