@@ -187,6 +187,9 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
   const askConfirm = (title, body, onConfirm, confirmLabel = "Supprimer", confirmColor = RD) =>
     setConfirmDlg({ title, body, onConfirm, confirmLabel, confirmColor });
 
+  // Photos stockées séparément (clés gtk-controles-photos-{id}) pour ne pas alourdir le chargement
+  const [photosCache, setPhotosCache] = useState({});
+
   // ── Computed ──
   const totalItems = checklistData.reduce((a, s) => a + s.items.length, 0);
 
@@ -196,7 +199,30 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     (async () => {
       try {
         const { data } = await supabase.from("app_state").select("data").eq("key", "gtk-controles").single();
-        if (data?.data?.controles)      setControles(data.data.controles);
+        if (data?.data?.controles) {
+          const rawControles = data.data.controles;
+          // Strip photos embedded in items (legacy format) — photos now stored per-control
+          const hasEmbedded = rawControles.some(c => c.items?.some(i => i.photo));
+          const stripped = rawControles.map(c => ({
+            ...c, items: (c.items || []).map(({ photo: _p, ...rest }) => rest),
+          }));
+          setControles(stripped);
+          // Background migration: move embedded photos to separate app_state keys
+          if (hasEmbedded) {
+            (async () => {
+              const cache = {};
+              for (const ctrl of rawControles) {
+                const photos = {};
+                (ctrl.items || []).forEach(item => { if (item.photo) photos[item.label] = item.photo; });
+                if (Object.keys(photos).length > 0) {
+                  try { await saveAppState(`gtk-controles-photos-${ctrl.id}`, photos); } catch {}
+                  cache[ctrl.id] = photos;
+                }
+              }
+              if (Object.keys(cache).length > 0) setPhotosCache(cache);
+            })();
+          }
+        }
         if (data?.data?.nonConformites) setNonConformites(data.data.nonConformites);
         if (data?.data?.checklistData)  setChecklistData(data.data.checklistData);
       } catch (e) { console.error("Erreur chargement contrôles:", e); }
@@ -210,12 +236,16 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
       const { data: existing } = await supabase
         .from("app_state").select("data").eq("key", "gtk-controles").single();
 
-      const localC  = newC  ?? controles;
+      // Strip photos from controles — stored separately per control to keep the main key small
+      const stripPhotos = arr => (arr || []).map(c => ({
+        ...c, items: (c.items || []).map(({ photo: _p, ...r }) => r),
+      }));
+      const localC  = stripPhotos(newC  ?? controles);
       const localN  = newN  ?? nonConformites;
       const localCL = newCL ?? checklistData;
 
       // Contrôles : garder ceux du DB absents en local (ajoutés par un autre user)
-      const dbControles = existing?.data?.controles || [];
+      const dbControles = stripPhotos(existing?.data?.controles || []);
       const localCIds   = new Set(localC.map(c => c.id));
       const mergedC     = [...localC, ...dbControles.filter(c => !localCIds.has(c.id))];
 
@@ -230,6 +260,17 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
         checklistData:  localCL,
       });
     } catch (e) { onToast("Erreur sauvegarde", "err"); }
+  };
+
+  // ── Charge les photos d'un contrôle depuis sa clé dédiée ──
+  const loadPhotosForCtrl = async (ctrl) => {
+    if (photosCache[ctrl.id] !== undefined) return;
+    try {
+      const { data } = await supabase.from("app_state").select("data").eq("key", `gtk-controles-photos-${ctrl.id}`).single();
+      setPhotosCache(p => ({ ...p, [ctrl.id]: data?.data || {} }));
+    } catch {
+      setPhotosCache(p => ({ ...p, [ctrl.id]: {} }));
+    }
   };
 
   // ── Redimensionne une photo côté client avant stockage ──
@@ -288,10 +329,15 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     const newCtrl = {
       id, date: ctrlDate, controleur: ctrlControleur,
       techNom: ctrlTech, vehicule: ctrlVehicule, statut,
-      items: Object.entries(ctrlItems).map(([label, v]) => ({ label, ...v, photo: ctrlPhotos[label] || null })),
+      items: Object.entries(ctrlItems).map(([label, v]) => ({ label, ...v })),
       createdAt: new Date().toISOString(), ncCount: ncItems.length,
       reconvocDate,
     };
+    // Save photos separately so the main controles key stays small
+    if (Object.keys(ctrlPhotos).length > 0) {
+      try { await saveAppState(`gtk-controles-photos-${id}`, ctrlPhotos); } catch {}
+      setPhotosCache(p => ({ ...p, [id]: ctrlPhotos }));
+    }
     const newNCs = ncItems.map(label => ({
       id: genId(), controleId: id,
       label, techNom: ctrlTech, vehicule: ctrlVehicule, date: ctrlDate,
@@ -1013,8 +1059,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: T1 }}>{item.label}</div>
                         {item.commentaire && <div style={{ fontSize: 11, color: T4, marginTop: 2, fontStyle: "italic" }}>{item.commentaire}</div>}
-                        {item.photo && (
-                          <img src={item.photo} style={{ width: 72, height: 54, objectFit: "cover", borderRadius: 6, marginTop: 5, border: `1px solid ${C2}`, display: "block" }} />
+                        {(photosCache[viewCtrl?.id]?.[item.label] || item.photo) && (
+                          <img src={photosCache[viewCtrl?.id]?.[item.label] || item.photo} style={{ width: 72, height: 54, objectFit: "cover", borderRadius: 6, marginTop: 5, border: `1px solid ${C2}`, display: "block" }} />
                         )}
                       </div>
                       <span style={{ fontSize: 10, fontWeight: 700, flexShrink: 0, color: item.statut === "conforme" ? GR : item.statut === "non_conforme" ? RD : T5 }}>
@@ -1059,10 +1105,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
                 return (
                   <div key={c.id}
                     style={{ background: C1, border: `1.5px solid ${ncP > 0 ? RD + "40" : C2}`, borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, transition: "all .12s" }}>
-                    <div onClick={() => setViewCtrl(c)} style={{ width: 40, height: 40, borderRadius: 12, background: OL, display: "flex", alignItems: "center", justifyContent: "center", color: O, fontWeight: 800, fontSize: 14, flexShrink: 0, cursor: "pointer" }}>
+                    <div onClick={() => { setViewCtrl(c); loadPhotosForCtrl(c); }} style={{ width: 40, height: 40, borderRadius: 12, background: OL, display: "flex", alignItems: "center", justifyContent: "center", color: O, fontWeight: 800, fontSize: 14, flexShrink: 0, cursor: "pointer" }}>
                       {(c.techNom || "?").charAt(0).toUpperCase()}
                     </div>
-                    <div onClick={() => setViewCtrl(c)} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
+                    <div onClick={() => { setViewCtrl(c); loadPhotosForCtrl(c); }} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: T1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.techNom || "—"}{c.vehicule ? ` · ${c.vehicule}` : ""}</div>
                       <div style={{ fontSize: 11, color: T4, marginTop: 2 }}>{fmtDate(c.date)} · {c.controleur}</div>
                       {c.reconvocDate && nonConformites.some(n => n.controleId === c.id && n.statut !== "resolu") && (() => {
@@ -1433,6 +1479,14 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
     { id: "stats",      label: "Stats",            ico: Ico.stats   },
     ...(isAdmin ? [{ id: "params", label: "Paramètres", ico: Ico.settings }] : []),
   ];
+
+  if (!dataLoaded) return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 20px", gap: 14, fontFamily: FF }}>
+      <style>{`@keyframes ctr-spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{ width: 36, height: 36, borderRadius: "50%", border: `3px solid ${C2}`, borderTopColor: O, animation: "ctr-spin .75s linear infinite" }} />
+      <div style={{ fontSize: 12, color: T4 }}>Chargement des contrôles…</div>
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: FF }}>
