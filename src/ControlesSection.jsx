@@ -464,12 +464,14 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
   };
 
   // ── Calculs ──
-  const ncOuvertes = nonConformites.filter(n => n.statut !== "resolu").length;
+  // NC visibles = toutes sauf celles dont le label est marqué optionnel
+  const visibleNCs  = nonConformites.filter(n => !optionalItems.has(n.label));
+  const ncOuvertes  = visibleNCs.filter(n => n.statut !== "resolu").length;
   const filtHistorique = controles.filter(c => {
     const ms = !histSearch || c.techNom?.toLowerCase().includes(histSearch.toLowerCase()) || c.vehicule?.toLowerCase().includes(histSearch.toLowerCase()) || c.controleur?.toLowerCase().includes(histSearch.toLowerCase());
     return ms && (!histTech || c.techNom === histTech);
   });
-  const filtNC = nonConformites.filter(n => !ncStatutFilter || n.statut === ncStatutFilter);
+  const filtNC = visibleNCs.filter(n => !ncStatutFilter || n.statut === ncStatutFilter);
 
   const toggleNCTech = (tech) => setNcExpandedTechs(prev => {
     const next = new Set(prev);
@@ -706,7 +708,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
     const today = todayStr();
     const reconvocs = controles
       .filter(c => c.reconvocDate)
-      .filter(c => nonConformites.some(n => n.controleId === c.id && n.statut !== "resolu"))
+      .filter(c => visibleNCs.some(n => n.controleId === c.id && n.statut !== "resolu"))
       .sort((a, b) => a.reconvocDate.localeCompare(b.reconvocDate));
 
     return (
@@ -732,7 +734,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
           {[
             { label: "Contrôles", val: controles.length, color: O, bg: OL },
             { label: "NC ouvertes", val: ncOuvertes, color: ncOuvertes > 0 ? RD : GR, bg: ncOuvertes > 0 ? RDL : GRL },
-            { label: "NC résolues", val: nonConformites.filter(n => n.statut === "resolu").length, color: GR, bg: GRL },
+            { label: "NC résolues", val: visibleNCs.filter(n => n.statut === "resolu").length, color: GR, bg: GRL },
           ].map(k => (
             <Card key={k.label} style={{ background: k.bg, border: `1px solid ${k.color}20`, padding: "12px 14px" }}>
               <div style={{ fontSize: 20, fontWeight: 900, color: k.color, fontFamily: FM }}>{k.val}</div>
@@ -747,7 +749,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
           <div style={{ fontSize: 11, fontWeight: 700, color: T5, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Derniers contrôles</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {controles.slice(0, 4).map(c => {
-              const ncP = nonConformites.filter(n => n.controleId === c.id && n.statut !== "resolu").length;
+              const ncP = visibleNCs.filter(n => n.controleId === c.id && n.statut !== "resolu").length;
               return (
                 <div key={c.id} onClick={() => { setViewCtrl(c); setCtrlSub("historique"); }}
                   style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: C1, border: `1px solid ${C2}`, borderRadius: 10, cursor: "pointer", transition: "background .1s" }}
@@ -1026,7 +1028,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
   // ════════════════════════════════════════
   const renderHistorique = () => {
     if (viewCtrl) {
-      const ncP = nonConformites.filter(n => n.controleId === viewCtrl.id && n.statut !== "resolu");
+      const ncP = visibleNCs.filter(n => n.controleId === viewCtrl.id && n.statut !== "resolu");
       return (
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
@@ -1141,7 +1143,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
             </Card>
           : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {filtHistorique.map(c => {
-                const ncP = nonConformites.filter(n => n.controleId === c.id && n.statut !== "resolu").length;
+                const ncP = visibleNCs.filter(n => n.controleId === c.id && n.statut !== "resolu").length;
                 return (
                   <div key={c.id}
                     style={{ background: C1, border: `1.5px solid ${ncP > 0 ? RD + "40" : C2}`, borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, transition: "all .12s" }}>
@@ -1151,7 +1153,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
                     <div onClick={() => { setViewCtrl(c); loadPhotosForCtrl(c); }} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: T1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.techNom || "—"}{c.vehicule ? ` · ${c.vehicule}` : ""}</div>
                       <div style={{ fontSize: 11, color: T4, marginTop: 2 }}>{fmtDate(c.date)} · {c.controleur}</div>
-                      {c.reconvocDate && nonConformites.some(n => n.controleId === c.id && n.statut !== "resolu") && (() => {
+                      {c.reconvocDate && visibleNCs.some(n => n.controleId === c.id && n.statut !== "resolu") && (() => {
                         const d = Math.ceil((new Date(c.reconvocDate) - new Date(todayStr())) / (1000*60*60*24));
                         const col = d < 0 ? RD : d <= 2 ? OR : T4;
                         return <div style={{ fontSize: 10, color: col, fontWeight: 600, marginTop: 1 }}>📅 Reconvoquer le {fmtDate(c.reconvocDate)}{d < 0 ? ` (retard ${Math.abs(d)}j)` : d === 0 ? " — Aujourd'hui" : ""}</div>;
@@ -1189,7 +1191,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
       <div>
         {/* Filtres statuts */}
         <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", paddingBottom: 4 }}>
-          {[{ id: "", label: `Toutes (${nonConformites.length})` }, ...NC_STATUTS.map(s => ({ id: s.id, label: `${s.label} (${nonConformites.filter(n => n.statut === s.id).length})` }))].map(f => (
+          {[{ id: "", label: `Toutes (${visibleNCs.length})` }, ...NC_STATUTS.map(s => ({ id: s.id, label: `${s.label} (${visibleNCs.filter(n => n.statut === s.id).length})` }))].map(f => (
             <button key={f.id} onClick={() => setNcStatutFilter(f.id)}
               style={{ padding: "6px 14px", borderRadius: 20, fontSize: 11, fontWeight: 700, border: "none", cursor: "pointer", whiteSpace: "nowrap", fontFamily: FF, transition: "all .12s", background: ncStatutFilter === f.id ? O : C2, color: ncStatutFilter === f.id ? "#fff" : T3 }}>
               {f.label}
@@ -1292,11 +1294,11 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
     const byTech = [...new Set(controles.map(c => c.techNom).filter(Boolean))].map(nom => ({
       nom,
       count: controles.filter(c => c.techNom === nom).length,
-      nc: nonConformites.filter(n => n.techNom === nom && n.statut !== "resolu").length,
+      nc: visibleNCs.filter(n => n.techNom === nom && n.statut !== "resolu").length,
     })).sort((a, b) => b.count - a.count);
 
-    const ncOuv = nonConformites.filter(n => n.statut !== "resolu").length;
-    const ncRes = nonConformites.filter(n => n.statut === "resolu").length;
+    const ncOuv = visibleNCs.filter(n => n.statut !== "resolu").length;
+    const ncRes = visibleNCs.filter(n => n.statut === "resolu").length;
 
     return (
       <div>
