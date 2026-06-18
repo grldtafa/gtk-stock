@@ -194,6 +194,9 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
   const [ncResolveModal, setNcResolveModal] = useState(null); // { ncId, ncLabel, ncTech }
   const [ncResolvePhoto, setNcResolvePhoto] = useState(null); // base64
 
+  // Éléments non-obligatoires (ne génèrent pas de NC)
+  const [optionalItems, setOptionalItems] = useState(new Set());
+
   // ── Computed ──
   const totalItems = checklistData.reduce((a, s) => a + s.items.length, 0);
 
@@ -239,12 +242,13 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
         }
         if (data?.data?.nonConformites) setNonConformites(data.data.nonConformites);
         if (data?.data?.checklistData)  setChecklistData(data.data.checklistData);
+        if (data?.data?.optionalItems)  setOptionalItems(new Set(data.data.optionalItems));
       } catch (e) { console.error("Erreur chargement contrôles:", e); }
       setDataLoaded(true);
     })();
   }, [dataLoaded]);
 
-  const save = async (newC, newN, newCL) => {
+  const save = async (newC, newN, newCL, newOI) => {
     try {
       // ── Fusion avec l'état DB pour ne pas écraser les contrôles d'autres utilisateurs ──
       const { data: existing } = await supabase
@@ -257,6 +261,7 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
       const localC  = stripPhotos(newC  ?? controles);
       const localN  = newN  ?? nonConformites;
       const localCL = newCL ?? checklistData;
+      const localOI = newOI ?? [...optionalItems];
 
       // Contrôles : garder ceux du DB absents en local (ajoutés par un autre user)
       const dbControles = stripPhotos(existing?.data?.controles || []);
@@ -272,8 +277,17 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
         controles:      mergedC,
         nonConformites: mergedN,
         checklistData:  localCL,
+        optionalItems:  localOI,
       });
     } catch (e) { onToast("Erreur sauvegarde", "err"); }
+  };
+
+  const toggleOptionalItem = async (label) => {
+    const next = new Set(optionalItems);
+    if (next.has(label)) next.delete(label); else next.add(label);
+    setOptionalItems(next);
+    await save(null, null, null, [...next]);
+    onToast(next.has(label) ? `"${label}" marqué non-obligatoire` : `"${label}" marqué obligatoire`);
   };
 
   // ── Charge les photos d'un contrôle depuis sa clé dédiée ──
@@ -336,7 +350,9 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     if (!ctrlTech) { onToast("Sélectionne un technicien", "warn"); return; }
     setSaving(true);
     const id = genId();
-    const ncItems = Object.entries(ctrlItems).filter(([, v]) => v.statut === "non_conforme").map(([l]) => l);
+    const ncItems = Object.entries(ctrlItems)
+      .filter(([label, v]) => v.statut === "non_conforme" && !optionalItems.has(label))
+      .map(([l]) => l);
     const reconvocDate = ncItems.length > 0
       ? new Date(new Date(ctrlDate).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
       : null;
@@ -885,14 +901,18 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
                 const item        = ctrlItems[label] || { statut: "non_verifie", commentaire: "" };
                 const isOK        = item.statut === "conforme";
                 const isNC        = item.statut === "non_conforme";
+                const isOptional  = optionalItems.has(label);
                 const commentOpen = openComments[label];
                 const hasPhoto    = !!ctrlPhotos[label];
                 const needsPhoto  = pendingPhotoItem === label;
                 return (
-                  <div key={label} style={{ borderRadius: 8, overflow: "hidden", border: `1px solid ${isNC ? RD + "50" : isOK ? GR + "50" : needsPhoto ? O + "80" : C2}`, transition: "border-color .15s" }}>
+                  <div key={label} style={{ borderRadius: 8, overflow: "hidden", border: `1px solid ${isNC ? (isOptional ? O + "50" : RD + "50") : isOK ? GR + "50" : needsPhoto ? O + "80" : C2}`, transition: "border-color .15s" }}>
                     {/* Ligne principale */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: isNC ? RDL : isOK ? GRL : needsPhoto ? OL : C3 }}>
-                      <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: T1, lineHeight: 1.4 }}>{label}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: isNC ? (isOptional ? OL : RDL) : isOK ? GRL : needsPhoto ? OL : C3 }}>
+                      <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: T1, lineHeight: 1.4 }}>
+                        {label}
+                        {isOptional && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: OR, background: ORL, borderRadius: 4, padding: "1px 5px" }}>Optionnel</span>}
+                      </div>
                       {/* Miniature photo si déjà prise */}
                       {hasPhoto && (
                         <img src={ctrlPhotos[label]} style={{ width: 36, height: 28, objectFit: "cover", borderRadius: 5, border: `1px solid ${GR}40`, flexShrink: 0 }} />
@@ -1421,6 +1441,19 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
                         {item}
                       </span>
                     )}
+
+                    {/* Toggle optionnel */}
+                    {!isEditing && (() => {
+                      const isOpt = optionalItems.has(item);
+                      return (
+                        <button
+                          onClick={() => toggleOptionalItem(item)}
+                          title={isOpt ? "Rendre obligatoire" : "Rendre non-obligatoire"}
+                          style={{ padding: "2px 7px", height: 26, borderRadius: 6, border: `1px solid ${isOpt ? OR : C2}`, background: isOpt ? ORL : C3, cursor: "pointer", display: "flex", alignItems: "center", color: isOpt ? OR : T5, fontSize: 10, fontWeight: 700, fontFamily: FF, flexShrink: 0, whiteSpace: "nowrap" }}>
+                          {isOpt ? "Optionnel" : "Obligatoire"}
+                        </button>
+                      );
+                    })()}
 
                     {/* Valider (mode édition) */}
                     {isEditing ? (
