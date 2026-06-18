@@ -190,6 +190,10 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
   // Photos stockées séparément (clés gtk-controles-photos-{id}) pour ne pas alourdir le chargement
   const [photosCache, setPhotosCache] = useState({});
 
+  // Modale résolution NC avec photo obligatoire
+  const [ncResolveModal, setNcResolveModal] = useState(null); // { ncId, ncLabel, ncTech }
+  const [ncResolvePhoto, setNcResolvePhoto] = useState(null); // base64
+
   // ── Computed ──
   const totalItems = checklistData.reduce((a, s) => a + s.items.length, 0);
 
@@ -364,9 +368,15 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
     setCtrlSub("historique");
   };
 
-  const updateNCStatut = async (ncId, statut) => {
-    const upd = nonConformites.map(n => n.id === ncId ? { ...n, statut, resolvedAt: statut === "resolu" ? new Date().toISOString() : null } : n);
-    setNonConformites(upd); await save(null, upd); onToast("Statut mis à jour");
+  const updateNCStatut = async (ncId, statut, photoB64 = null) => {
+    if (photoB64) {
+      try { await saveAppState(`gtk-nc-photos-${ncId}`, { photo: photoB64 }); } catch {}
+    }
+    const upd = nonConformites.map(n => n.id === ncId
+      ? { ...n, statut, resolvedAt: statut === "resolu" ? new Date().toISOString() : null, resolvedPhoto: statut === "resolu" ? !!photoB64 : false }
+      : n);
+    setNonConformites(upd); await save(null, upd);
+    onToast(statut === "resolu" ? "NC résolue avec photo" : "Statut mis à jour");
   };
 
   const deleteControle = async (id) => {
@@ -1227,7 +1237,15 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
                               {NC_STATUTS.filter(s => s.id !== nc.statut).map(s => (
-                                <button key={s.id} onClick={e => { e.stopPropagation(); updateNCStatut(nc.id, s.id); }}
+                                <button key={s.id} onClick={e => {
+                                  e.stopPropagation();
+                                  if (s.id === "resolu") {
+                                    setNcResolveModal({ ncId: nc.id, ncLabel: nc.label, ncTech: nc.techNom });
+                                    setNcResolvePhoto(null);
+                                  } else {
+                                    updateNCStatut(nc.id, s.id);
+                                  }
+                                }}
                                   style={{ padding: "4px 10px", borderRadius: 6, fontSize: 10, fontWeight: 700, border: `1px solid ${s.color}`, background: "transparent", color: s.color, cursor: "pointer", fontFamily: FF, whiteSpace: "nowrap" }}>
                                   → {s.label}
                                 </button>
@@ -1501,9 +1519,59 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
     </div>
   );
 
+  // ─── Modale résolution NC avec photo obligatoire ───
+  const renderNcResolveModal = () => !ncResolveModal ? null : (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px" }}>
+      <div style={{ background: C1, borderRadius: 16, width: "100%", maxWidth: 360, padding: "24px 20px" }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: T1, marginBottom: 4 }}>Résoudre la non-conformité</div>
+        <div style={{ fontSize: 12, color: T4, marginBottom: 18, lineHeight: 1.5 }}>
+          <span style={{ fontWeight: 700, color: GR }}>{ncResolveModal.ncTech}</span> — {ncResolveModal.ncLabel}
+        </div>
+
+        <div style={{ fontSize: 11, fontWeight: 700, color: T3, textTransform: "uppercase", letterSpacing: .7, marginBottom: 8 }}>
+          Photo de preuve (obligatoire)
+        </div>
+
+        {ncResolvePhoto ? (
+          <div style={{ position: "relative", marginBottom: 18 }}>
+            <img src={ncResolvePhoto} style={{ width: "100%", height: 170, objectFit: "cover", borderRadius: 10, border: `1.5px solid ${GR}40`, display: "block" }} />
+            <button onClick={() => setNcResolvePhoto(null)}
+              style={{ position: "absolute", top: 7, right: 7, width: 26, height: 26, borderRadius: "50%", background: "rgba(0,0,0,.55)", border: "none", cursor: "pointer", color: "#fff", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              ✕
+            </button>
+          </div>
+        ) : (
+          <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "22px 16px", border: `2px dashed ${C2}`, borderRadius: 10, cursor: "pointer", background: C3, marginBottom: 18 }}>
+            <span style={{ color: T4 }}>{Ico.camera}</span>
+            <span style={{ fontSize: 12, color: T4 }}>Prendre ou importer une photo</span>
+            <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+              onChange={async e => {
+                const file = e.target.files?.[0];
+                if (file) { const b64 = await resizeImage(file, 800); setNcResolvePhoto(b64); }
+              }} />
+          </label>
+        )}
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <Btn outline color={T3} small onClick={() => { setNcResolveModal(null); setNcResolvePhoto(null); }} style={{ flex: 1 }}>
+            Annuler
+          </Btn>
+          <Btn color={GR} small disabled={!ncResolvePhoto} onClick={async () => {
+            await updateNCStatut(ncResolveModal.ncId, "resolu", ncResolvePhoto);
+            setNcResolveModal(null);
+            setNcResolvePhoto(null);
+          }} style={{ flex: 1 }}>
+            {Ico.check} Valider résolue
+          </Btn>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ fontFamily: FF }}>
       {renderConfirm()}
+      {renderNcResolveModal()}
 
       {ctrlSub !== "form" && (
         <div style={{ display: "flex", gap: 4, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
