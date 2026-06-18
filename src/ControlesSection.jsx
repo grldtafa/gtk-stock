@@ -207,10 +207,19 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
             ...c, items: (c.items || []).map(({ photo: _p, ...rest }) => rest),
           }));
           setControles(stripped);
-          // Migration en arrière-plan : déplace les photos vers des clés séparées
-          // puis réécrit la clé principale sans photos pour que les prochains chargements soient rapides
+          // Migration en arrière-plan
           if (hasEmbedded) {
             (async () => {
+              // ÉTAPE 1 EN PREMIER : nettoyer la clé principale (1 seul write Supabase)
+              // → même si l'utilisateur ferme l'onglet juste après, le prochain chargement sera rapide
+              try {
+                await saveAppState("gtk-controles", {
+                  controles:      stripped,
+                  nonConformites: data.data.nonConformites || [],
+                  checklistData:  data.data.checklistData  || DEFAULT_CHECKLIST,
+                });
+              } catch (e) { console.error("Migration nettoyage clé principale:", e); }
+              // ÉTAPE 2 : sauvegarder les photos dans des clés séparées par contrôle
               const cache = {};
               for (const ctrl of rawControles) {
                 const photos = {};
@@ -221,14 +230,6 @@ export default function ControlesSection({ techs = [], currentUser = null, onToa
                 }
               }
               if (Object.keys(cache).length > 0) setPhotosCache(cache);
-              // Réécriture de la clé principale sans photos — chargements suivants ultra-rapides
-              try {
-                await saveAppState("gtk-controles", {
-                  controles:      stripped,
-                  nonConformites: data.data.nonConformites || [],
-                  checklistData:  data.data.checklistData  || DEFAULT_CHECKLIST,
-                });
-              } catch (e) { console.error("Migration nettoyage clé principale:", e); }
             })();
           }
         }
@@ -1490,10 +1491,13 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;paddi
   ];
 
   if (!dataLoaded) return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 20px", gap: 14, fontFamily: FF }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 20px", gap: 10, fontFamily: FF }}>
       <style>{`@keyframes ctr-spin{to{transform:rotate(360deg)}}`}</style>
       <div style={{ width: 36, height: 36, borderRadius: "50%", border: `3px solid ${C2}`, borderTopColor: O, animation: "ctr-spin .75s linear infinite" }} />
-      <div style={{ fontSize: 12, color: T4 }}>Chargement des contrôles…</div>
+      <div style={{ fontSize: 13, color: T3, fontWeight: 600 }}>Chargement des contrôles…</div>
+      <div style={{ fontSize: 11, color: T5, textAlign: "center", maxWidth: 280 }}>
+        Première ouverture : migration des données en cours.<br/>Les prochains chargements seront instantanés.
+      </div>
     </div>
   );
 
