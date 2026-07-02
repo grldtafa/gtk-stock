@@ -501,7 +501,12 @@ export default function StockSection({
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
                     <Badge bg={GRL} c={GR}>{bl.lignes?.length||0} art.</Badge>
-                    <div style={{color:T5,fontSize:11,marginTop:4}}>{blViewId===bl.id?"▲":"▼"}</div>
+                    {(bl.lignes||[]).some(l=>l.prix>0)&&(
+                      <div style={{fontFamily:FM,fontWeight:800,color:GR,fontSize:12,marginTop:3}}>
+                        {f((bl.lignes||[]).reduce((s,l)=>s+(l.qty||0)*(l.prix||0),0))}
+                      </div>
+                    )}
+                    <div style={{color:T5,fontSize:11,marginTop:2}}>{blViewId===bl.id?"▲":"▼"}</div>
                   </div>
                 </div>
                 {blViewId===bl.id&&bl.lignes&&(
@@ -547,7 +552,15 @@ export default function StockSection({
                         );
                       })}
                     </div>
-                    <div style={{marginTop:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    {(bl.lignes||[]).some(l=>l.prix>0)&&(
+                      <div style={{marginTop:14,padding:"10px 0",borderTop:`1px solid ${C2}`,display:"flex",justifyContent:"flex-end",alignItems:"center",gap:8}}>
+                        <span style={{fontSize:11,color:T4,fontWeight:600}}>Total entrée</span>
+                        <span style={{fontFamily:FM,fontWeight:900,fontSize:16,color:GR}}>
+                          {f((bl.lignes||[]).reduce((s,l)=>s+(l.qty||0)*(l.prix||0),0))}
+                        </span>
+                      </div>
+                    )}
+                    <div style={{marginTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <Btn small outline color={T3} onClick={()=>printBl(bl)}>{Ico.print} Imprimer</Btn>
                     {isAdmin&&(
                         <Btn small outline color={RD} onClick={()=>askConfirm(
