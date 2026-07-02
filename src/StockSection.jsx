@@ -1453,6 +1453,70 @@ export default function StockSection({
             }
           </Card>
         </div>
+
+        {/* ── Flux mensuels : entrées & sorties ── */}
+        <Card>
+          <div style={{fontSize:12,fontWeight:800,color:T1,marginBottom:16,display:"flex",alignItems:"center",gap:6}}>
+            <span style={{color:GR,display:"flex"}}>{Ico.in}</span>
+            <span style={{color:O,display:"flex"}}>{Ico.out}</span>
+            Flux mensuels — Entrées &amp; Sorties
+          </div>
+          {(stkInLog.length===0 && stkOut.length===0)
+            ? <div style={{textAlign:"center",color:T5,fontSize:12,padding:"20px 0"}}>Aucun mouvement enregistré</div>
+            : (()=>{
+                const inByM = stkInLog.reduce((acc,s)=>{
+                  const k=s.ym||"?"; acc[k]=(acc[k]||0)+(s.qty||0)*(s.prix||0); return acc;
+                },{});
+                const outByM = stkOut.reduce((acc,s)=>{
+                  const k=s.ym||s.date?.slice(0,7)||"?"; acc[k]=(acc[k]||0)+(s.qty||0)*(s.prix||0); return acc;
+                },{});
+                const allM=[...new Set([...Object.keys(inByM),...Object.keys(outByM)])].sort().slice(-12);
+                const totIn=allM.reduce((s,k)=>s+(inByM[k]||0),0);
+                const totOut=allM.reduce((s,k)=>s+(outByM[k]||0),0);
+                const totSolde=totIn-totOut;
+                const ROW={padding:"8px 10px"};
+                const TH={fontWeight:700,fontSize:10,textTransform:"uppercase",letterSpacing:.7,padding:"7px 10px"};
+                return (
+                  <div style={{overflowX:"auto"}}>
+                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                      <thead>
+                        <tr style={{background:C3}}>
+                          <th style={{...TH,textAlign:"left",color:T4}}>Mois</th>
+                          <th style={{...TH,textAlign:"right",color:GR}}>Entrées</th>
+                          <th style={{...TH,textAlign:"right",color:O}}>Sorties</th>
+                          <th style={{...TH,textAlign:"right",color:T4}}>Solde</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allM.map((ym,i)=>{
+                          const inV=inByM[ym]||0;
+                          const outV=outByM[ym]||0;
+                          const solde=inV-outV;
+                          return (
+                            <tr key={ym} style={{background:i%2===0?C1:C3,borderBottom:`1px solid ${C2}`}}>
+                              <td style={{...ROW,fontWeight:600,color:T2}}>{fmtYM(ym)}</td>
+                              <td style={{...ROW,textAlign:"right",fontFamily:FM,fontWeight:700,color:GR}}>{inV>0?f(inV):"—"}</td>
+                              <td style={{...ROW,textAlign:"right",fontFamily:FM,fontWeight:700,color:O}}>{outV>0?f(outV):"—"}</td>
+                              <td style={{...ROW,textAlign:"right",fontFamily:FM,fontWeight:800,color:solde>=0?GR:RD}}>{solde>=0?"+":""}{f(solde)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr style={{borderTop:`2px solid ${C2}`,background:C2}}>
+                          <td style={{...ROW,fontWeight:800,color:T1}}>Total</td>
+                          <td style={{...ROW,textAlign:"right",fontFamily:FM,fontWeight:900,color:GR,fontSize:13}}>{f(totIn)}</td>
+                          <td style={{...ROW,textAlign:"right",fontFamily:FM,fontWeight:900,color:O,fontSize:13}}>{f(totOut)}</td>
+                          <td style={{...ROW,textAlign:"right",fontFamily:FM,fontWeight:900,fontSize:13,color:totSolde>=0?GR:RD}}>{totSolde>=0?"+":""}{f(totSolde)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                );
+              })()
+          }
+        </Card>
+
         {/* Consommation par mois */}
         <Card>
           <div style={{fontSize:12,fontWeight:800,color:T1,marginBottom:16,display:"flex",alignItems:"center",gap:6}}>
