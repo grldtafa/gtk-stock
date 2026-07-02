@@ -1428,23 +1428,58 @@ export default function StockSection({
           <div style={{fontSize:12,fontWeight:800,color:T1,marginBottom:16,display:"flex",alignItems:"center",gap:6}}>
             {Ico.stats} Consommation mensuelle <span style={{fontSize:10,color:T5,fontWeight:500,marginLeft:4}}>· Consommables uniquement</span>
           </div>
-          {stkOut.length===0
+          {mKeys.length===0
             ? <div style={{textAlign:"center",color:T5,fontSize:12,padding:"20px 0"}}>Aucune sortie enregistrée</div>
-            : <div style={{display:"flex",alignItems:"flex-end",gap:isMob?4:10,height:isMob?90:110}}>
-                {mKeys.map(ym=>{
-                  const d=byMonth[ym];
-                  const pct=d.val/maxVal;
-                  // Label court sur mobile : "234€" au lieu de "1 234,50 €"
-                  const label = d.val>0 ? (isMob ? `${Math.round(d.val)}€` : f(d.val)) : "";
-                  return (
-                    <div key={ym} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:0}}>
-                      <div style={{fontSize:8,fontFamily:FM,fontWeight:800,color:O,textAlign:"center",lineHeight:1.2,overflow:"hidden",width:"100%",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{label}</div>
-                      <div style={{width:"100%",background:O,borderRadius:"4px 4px 0 0",minHeight:4,height:Math.max(4,pct*(isMob?60:72)),transition:"height .3s"}}/>
-                      <div style={{fontSize:isMob?8:9,color:T4,textAlign:"center",fontWeight:600,whiteSpace:"nowrap"}}>{fmtYM(ym).split(" ")[0]}</div>
+            : (()=>{
+                const H=isMob?120:160;
+                const barH=pct=>Math.max(6,Math.round(pct*(H-36)));
+                return (
+                  <div>
+                    <div style={{display:"flex",alignItems:"flex-end",gap:isMob?6:14,height:H,borderBottom:`2px solid ${C2}`}}>
+                      {mKeys.map(ym=>{
+                        const d=byMonth[ym];
+                        const pct=d.val/maxVal;
+                        const isCur=ym===ymNow;
+                        const bh=barH(pct);
+                        const valLabel=d.val>=1000
+                          ? `${(d.val/1000).toLocaleString("fr-FR",{maximumFractionDigits:1})}k€`
+                          : `${Math.round(d.val)}€`;
+                        return (
+                          <div key={ym} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",minWidth:0,height:"100%"}}>
+                            <div style={{fontSize:isMob?9:11,fontFamily:FM,fontWeight:800,
+                              color:isCur?O:T3,textAlign:"center",marginBottom:5,
+                              width:"100%",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>
+                              {d.val>0?valLabel:""}
+                            </div>
+                            <div style={{
+                              width:"100%",height:bh,
+                              borderRadius:"6px 6px 0 0",
+                              background:isCur?O:`${O}44`,
+                              boxShadow:isCur?`0 -3px 12px ${O}55`:"none",
+                              transition:"height .4s cubic-bezier(.4,0,.2,1)",
+                              position:"relative",overflow:"hidden"
+                            }}>
+                              {isCur&&<div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,#fff3 0%,transparent 60%)"}}/>}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
+                    <div style={{display:"flex",gap:isMob?6:14,marginTop:7}}>
+                      {mKeys.map(ym=>{
+                        const isCur=ym===ymNow;
+                        return (
+                          <div key={ym} style={{flex:1,textAlign:"center",fontSize:isMob?9:11,
+                            fontWeight:isCur?800:500,color:isCur?O:T4,
+                            whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                            {fmtYM(ym).split(" ")[0]}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()
           }
         </Card>
 
